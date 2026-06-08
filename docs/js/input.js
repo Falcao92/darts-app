@@ -8,8 +8,18 @@ async function submitDarts() {
   const total = d1 + d2 + d3;
 
   const matches = await getMatches();
-  const match = matches.find(m => m.id == id);
-  if (!match) return;
+if (!matches || !Array.isArray(matches)) {
+  console.log("Keine Matches geladen!");
+  return;
+}
+
+const match = matches.find(m => m.id == id);
+
+if (!match) {
+  alert("Match nicht gefunden!");
+  return;
+}
+
 
   let score = match.fields.Score1;
   let newScore = score - total;
