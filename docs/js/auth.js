@@ -11,28 +11,42 @@ const msalInstance = new msal.PublicClientApplication(msalConfig);
 let accessToken = null;
 
 async function login() {
+
+  // 👉 prüfen ob bereits eingeloggt
   const accounts = msalInstance.getAllAccounts();
 
   if (accounts.length > 0) {
-    // ✅ Token direkt holen (wichtig!)
-    const result = await msalInstance.acquireTokenSilent({
-      scopes: ["User.Read", "Sites.ReadWrite.All"],
-      account: accounts[0]
-    });
+    try {
+      const result = await msalInstance.acquireTokenSilent({
+        scopes: ["User.Read", "Sites.ReadWrite.All"],
+        account: accounts[0]
+      });
 
-    accessToken = result.accessToken;
-    return;
+      accessToken = result.accessToken;
+      console.log("✅ Token geladen");
+      return accessToken;
+
+    } catch (e) {
+      console.log("Silent Token fehlgeschlagen → redirect");
+    }
   }
 
-  // 👉 wenn noch nicht eingeloggt
+  // 👉 Login starten wenn kein Token
   await msalInstance.loginRedirect({
     scopes: ["User.Read", "Sites.ReadWrite.All"]
   });
 }
 
-// ✅ wichtig für Redirect Login
-msalInstance.handleRedirectPromise().then(result => {
-  if (result && result.accessToken) {
-    accessToken = result.accessToken;
+// 👉 sehr wichtig für redirect login
+msalInstance.handleRedirectPromise().then(async (result) => {
+  if (result && result.account) {
+    const tokenResponse = await msalInstance.acquireTokenSilent({
+      scopes: ["User.Read", "Sites.ReadWrite.All"],
+      account: result.account
+    });
+
+    accessToken = tokenResponse.accessToken;
+    console.log("✅ Token nach Redirect");
   }
 });
+``
