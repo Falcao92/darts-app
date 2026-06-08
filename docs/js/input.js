@@ -1,3 +1,21 @@
+async function switchTurn(id, next) {
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${id}/fields`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        Turn: next
+      })
+    }
+  );
+
+  console.log("🔁 Spieler gewechselt:", next);
+}
+
 async function ensureLogin() {
   if (!accessToken) {
     await login();
@@ -30,12 +48,43 @@ async function submitDarts() {
     return;
   }
 
-  let score = match.fields.Score1;
-  let newScore = score - total;
+const fields = match.fields;
+let newScore1 = fields.Score1;
+let newScore2 = fields.Score2;
 
-  if (newScore < 0 || newScore === 1) return;
+// 🎯 prüfen wer dran ist
+if (fields.Turn === "p1") {
 
-  await updateMatch(id, newScore, match.fields.Score2);
+  let newScore = fields.Score1 - total;
+
+  if (newScore < 0 || newScore === 1) {
+    switchTurn(id, "p2");
+    return;
+  }
+
+  newScore1 = newScore;
+  updateCheckout(newScore);
+
+  await updateMatch(id, newScore1, fields.Score2);
+
+  await switchTurn(id, "p2");
+
+} else {
+
+  let newScore = fields.Score2 - total;
+
+  if (newScore < 0 || newScore === 1) {
+    switchTurn(id, "p1");
+    return;
+  }
+
+  newScore2 = newScore;
+  updateCheckout(newScore);
+
+  await updateMatch(id, fields.Score1, newScore2);
+
+  await switchTurn(id, "p1");
+}
 
   updateCheckout(newScore);
 }
