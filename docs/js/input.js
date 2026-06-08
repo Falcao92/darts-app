@@ -1,4 +1,13 @@
+async function ensureLogin() {
+  if (!accessToken) {
+    await login();
+  }
+}
+
 async function submitDarts() {
+
+  await ensureLogin(); // 🔥 wichtig!
+
   const id = document.getElementById("matchId").value;
 
   const d1 = parseDart(document.getElementById("dart1").value);
@@ -8,18 +17,18 @@ async function submitDarts() {
   const total = d1 + d2 + d3;
 
   const matches = await getMatches();
-if (!matches || !Array.isArray(matches)) {
-  console.log("Keine Matches geladen!");
-  return;
-}
 
-const match = matches.find(m => m.id == id);
+  if (!matches) {
+    console.log("Keine Matches geladen");
+    return;
+  }
 
-if (!match) {
-  alert("Match nicht gefunden!");
-  return;
-}
+  const match = matches.find(m => m.id == id);
 
+  if (!match) {
+    alert("Match nicht gefunden");
+    return;
+  }
 
   let score = match.fields.Score1;
   let newScore = score - total;
