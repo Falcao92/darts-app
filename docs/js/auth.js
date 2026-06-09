@@ -54,3 +54,32 @@ async function ensureLogin() {
     scopes: ["User.Read", "Sites.ReadWrite.All"]
   });
 }
+
+// ✅ IMMER Token sauber holen
+async function getAccessToken() {
+
+  await initAuth(); // sicherstellen dass login fertig ist
+
+  const accounts = msalInstance.getAllAccounts();
+
+  if (accounts.length === 0) {
+    console.log("Kein Account vorhanden");
+    return null;
+  }
+
+  try {
+    const result = await msalInstance.acquireTokenSilent({
+      scopes: ["User.Read", "Sites.ReadWrite.All"],
+      account: accounts[0]
+    });
+
+    return result.accessToken;
+
+  } catch (e) {
+    console.log("Token holen fehlgeschlagen → redirect");
+
+    await msalInstance.loginRedirect({
+      scopes: ["User.Read", "Sites.ReadWrite.All"]
+    });
+  }
+}
