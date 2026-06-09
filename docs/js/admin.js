@@ -12,7 +12,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 });
 
 
-// ✅ SPIELER LADEN
+// ✅ Spieler laden
 async function loadPlayers(){
 
   players = await getList("Players");
@@ -42,7 +42,7 @@ async function loadPlayers(){
 }
 
 
-// ✅ SPIELER ERSTELLEN
+// ✅ Spieler erstellen
 async function createPlayer(){
 
   const name = document.getElementById("name").value;
@@ -58,18 +58,15 @@ async function createPlayer(){
       Authorization:`Bearer ${token}`,
       "Content-Type":"application/json"
     },
-    body:JSON.stringify({
-      fields:{ Title:name }
-    })
+    body:JSON.stringify({ fields:{ Title:name } })
   });
 
   document.getElementById("name").value = "";
-
   loadPlayers();
 }
 
 
-// ✅ SPIELER LÖSCHEN
+// ✅ Spieler löschen
 async function deletePlayer(id){
 
   const token = await getToken();
@@ -85,7 +82,7 @@ async function deletePlayer(id){
 }
 
 
-// ✅ BOARDS ERZEUGEN
+// ✅ Boards
 function createBoards(){
 
   const sel = document.getElementById("board");
@@ -97,7 +94,7 @@ function createBoards(){
 }
 
 
-// ✅ TRAININGSSPIEL (JETZT MIT BOARD!)
+// ✅ Trainingsspiel
 async function createTraining(){
 
   const p1 = document.getElementById("p1").value;
@@ -110,7 +107,11 @@ async function createTraining(){
   }
 
   const matches = await getList("Matches");
-  const exists = matches.find(m => m.fields.BoardId == board);
+
+  const exists = matches.find(m =>
+    m.fields.BoardId == board &&
+    m.fields.Status === "active"
+  );
 
   if(exists){
     alert("Board ist bereits belegt!");
@@ -119,13 +120,11 @@ async function createTraining(){
 
   await createMatch(p1, p2, board);
 
-  alert("✅ Match erstellt");
-
   await loadMatches();
 }
 
 
-// ✅ MATCHES ANZEIGEN
+// ✅ Matches laden (NUR aktive!)
 async function loadMatches(){
 
   const matches = await getList("Matches");
@@ -133,74 +132,39 @@ async function loadMatches(){
 
   div.innerHTML = "<h3>Aktuelle Spiele</h3>";
 
-  matches.forEach(m => {
+  const active = matches.filter(m =>
+    m.fields &&
+    m.fields.Status === "active" &&
+    m.fields.Player1 &&
+    m.fields.Player2 &&
+    m.fields.BoardId
+  );
+
+  if(active.length === 0){
+    div.innerHTML += "<p>Keine aktiven Spiele</p>";
+    return;
+  }
+
+  active.forEach(m => {
 
     const f = m.fields;
 
     div.innerHTML += `
       <div>
         Board ${f.BoardId}: ${f.Player1} vs ${f.Player2}
+        <button onclick="finishMatch('${m.id}')">✅</button>
       </div>
     `;
   });
 }
 
 
-// ✅ KO TURNIER
-async function createKO(){
-
-  const list = players.map(p => p.fields.Title);
-  shuffle(list);
-
-  for(let i=0;i<list.length;i+=2){
-
-    await createMatch(
-      list[i],
-      list[i+1] || "Freilos",
-      Math.floor(i/2) + 1
-    );
-  }
-
-  await loadMatches();
-}
-
-
-// ✅ GRUPPENPHASE
-async function createGroups(){
-
-  const list = players.map(p => p.fields.Title);
-  shuffle(list);
-
-  let board = 1;
-
-  for(let i=0;i<list.length;i+=3){
-
-    const group = list.slice(i, i+3);
-
-    for(let a=0;a<group.length;a++){
-      for(let b=a+1;b<group.length;b++){
-
-        await createMatch(
-          group[a],
-          group[b],
-          board++
-        );
-      }
-    }
-  }
-
-  await loadMatches();
-}
-
-
-// ✅ MATCH ERSTELLEN
+// ✅ Match erstellen
 async function createMatch(p1, p2, board){
 
   const token = await getToken();
 
-  console.log("Erstelle Match:", p1, p2, board);
-
-  const res = await fetch(
+  await fetch(
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
   {
     method:"POST",
@@ -219,20 +183,70 @@ async function createMatch(p1, p2, board){
         Legs2: 0,
         LegsToWin: 3,
         BoardId: parseInt(board),
-        Turn: "p1"
+        Turn: "p1",
+        Status: "active"   // ✅ wichtig
       }
     })
   });
-
-  if(!res.ok){
-    console.error("❌ Fehler:", await res.text());
-  } else {
-    console.log("✅ Match erstellt");
-  }
 }
 
 
-// ✅ HILFSFUNKTIONEN
-function shuffle(arr){
-  return arr.sort(() => Math.random() - 0.5);
+// ✅ Match beenden
+async function finishMatch(id){
+
+  const token = await getToken();
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${id}/fields`,
+  {
+    method:"PATCH",
+    headers:{
+      Authorization:`Bearer ${token}`,
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+      Status: "finished"
+    })
+  });
+
+  loadMatches();
+}
+
+
+// ✅ KO
+async function createKO(){
+
+  const list = players.map(p => p.fields.Title);
+
+  list.sort(() => Math.random() - 0.5);
+
+  for(let i=0;i<list.length;i+=2){
+    await createMatch(list[i], list[i+1] || "Freilos", i/2+1);
+  }
+
+  loadMatches();
+}
+
+
+// ✅ Gruppen
+async function createGroups(){
+
+  const list = players.map(p => p.fields.Title);
+
+  list.sort(() => Math.random() - 0.5);
+
+  let board = 1;
+
+  for(let i=0;i<list.length;i+=3){
+
+    const group = list.slice(i, i+3);
+
+    for(let a=0;a<group.length;a++){
+      for(let b=a+1;b<group.length;b++){
+        await createMatch(group[a], group[b], board++);
+      }
+    }
+  }
+
+  loadMatches();
 }
