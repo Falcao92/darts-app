@@ -22,6 +22,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 });
 
 
+// ✅ Match laden
 function loadMatch(){
 
   const board = document.getElementById("boardSelect").value;
@@ -37,6 +38,7 @@ function loadMatch(){
 }
 
 
+// ✅ UI aktualisieren
 function updateUI(){
 
   const f = currentMatch.fields;
@@ -50,6 +52,9 @@ function updateUI(){
   document.getElementById("turn").innerHTML =
     "👉 " + (f.Turn === "p1" ? f.Player1 : f.Player2);
 
+  document.getElementById("legs").innerHTML =
+    `Legs: ${f.Legs1 || 0} : ${f.Legs2 || 0}`;
+
   const score = f.Turn === "p1" ? f.Score1 : f.Score2;
 
   document.getElementById("checkout").innerHTML =
@@ -57,7 +62,9 @@ function updateUI(){
 }
 
 
+// ✅ Dart Parsing
 function parse(v){
+
   if(!v) return 0;
 
   v = v.toUpperCase();
@@ -72,6 +79,7 @@ function parse(v){
 }
 
 
+// ✅ Hauptlogik
 async function submit(){
 
   if(!currentMatch) return;
@@ -87,24 +95,75 @@ async function submit(){
   let score1 = f.Score1;
   let score2 = f.Score2;
 
+  let legs1 = f.Legs1 || 0;
+  let legs2 = f.Legs2 || 0;
+
+  let legsToWin = f.LegsToWin || 3;
+
   let turn = f.Turn;
 
+
+  // 🎯 PLAYER 1
   if(turn === "p1"){
 
-    if(score1 - total >= 0){
-      score1 -= total;
+    let newScore = score1 - total;
+
+    // ❌ Bust
+    if(newScore < 0 || newScore === 1){
       turn = "p2";
     }
 
-  } else {
+    // ✅ LEG GEWONNEN
+    else if(newScore === 0){
 
-    if(score2 - total >= 0){
-      score2 -= total;
+      legs1++;
+
+      // ✅ Match gewonnen?
+      if(legs1 >= legsToWin){
+        alert(f.Player1 + " gewinnt das Match!");
+      }
+
+      await updateMatch(id, 501, 501, "p2", legs1, legs2);
+      return;
+    }
+
+    // ✅ normaler Wurf
+    else {
+      score1 = newScore;
+      turn = "p2";
+    }
+  }
+
+
+  // 🎯 PLAYER 2
+  else {
+
+    let newScore = score2 - total;
+
+    if(newScore < 0 || newScore === 1){
+      turn = "p1";
+    }
+
+    else if(newScore === 0){
+
+      legs2++;
+
+      if(legs2 >= legsToWin){
+        alert(f.Player2 + " gewinnt das Match!");
+      }
+
+      await updateMatch(id, 501, 501, "p1", legs1, legs2);
+      return;
+    }
+
+    else {
+      score2 = newScore;
       turn = "p1";
     }
   }
 
-  await updateMatch(id, score1, score2, turn);
+
+  await updateMatch(id, score1, score2, turn, legs1, legs2);
 
   d1.value = "";
   d2.value = "";
@@ -117,7 +176,8 @@ async function submit(){
 }
 
 
-async function updateMatch(id, s1, s2, turn){
+// ✅ SharePoint Update
+async function updateMatch(id, s1, s2, turn, legs1, legs2){
 
   const token = await getToken();
 
@@ -132,21 +192,32 @@ async function updateMatch(id, s1, s2, turn){
     body:JSON.stringify({
       Score1:s1,
       Score2:s2,
-      Turn:turn
+      Turn:turn,
+      Legs1:legs1,
+      Legs2:legs2
     })
   });
 }
 
+
+// ✅ Checkout Tabelle
 function getCheckout(score){
 
   const map = {
     170:"T20 T20 Bull",
     167:"T20 T19 Bull",
+    164:"T20 T18 Bull",
+    161:"T20 T17 Bull",
+    160:"T20 T20 D20",
+    140:"T20 T20 D10",
+    120:"T20 20 D20",
     100:"T20 D20",
     80:"T20 D10",
     60:"20 D20",
+    50:"10 D20",
     40:"D20",
     32:"D16",
+    24:"D12",
     16:"D8",
     8:"D4"
   };
