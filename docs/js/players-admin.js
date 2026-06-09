@@ -53,4 +53,9 @@ await ensureLogin();
   await loadPlayers();
 }
 
-loadPlayers();
+window.addEventListener("DOMContentLoaded", async () => {
+
+  await ensureLogin();   // ✅ erst jetzt
+
+  await loadPlayers();   // ✅ danach
+});
