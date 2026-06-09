@@ -1,25 +1,77 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Darts System</title>
-<style>
-body{margin:0;font-family:Arial;background:#000;color:#fff;text-align:center}
-h1{color:red;text-shadow:0 0 15px red}
-.grid{display:flex;flex-wrap:wrap;justify-content:center;gap:20px;margin:40px}
-.card{width:250px;height:150px;background:#111;border:2px solid red;border-radius:10px;display:flex;flex-direction:column;justify-content:center;cursor:pointer}
-.card:hover{transform:scale(1.05)}
-</style>
+  <title>Darts System</title>
+
+  <!-- ✅ MSAL -->
+  <script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
+
+  <!-- ✅ DEIN AUTH CODE -->
+  <script src="js/auth.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: #000;
+      color: #fff;
+      text-align: center;
+    }
+
+    h1 {
+      color: red;
+      text-shadow: 0 0 15px red;
+    }
+
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin: 40px;
+    }
+
+    .card {
+      width: 250px;
+      height: 150px;
+      background: #111;
+      border: 2px solid red;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .card:hover {
+      transform: scale(1.05);
+    }
+  </style>
 </head>
+
 <body>
+
 <h1>🎯 Darts System</h1>
+
 <div class="grid">
-<div class="card" onclick="go('board.html?board=1')">📺 Board Ansicht</div>
-<div class="card" onclick="go('input.html')">📱 Eingabe</div>
-<div class="card" onclick="go('admin.html')">⚙️ Admin</div>
-<div class="card" onclick="go('overview.html')">📊 Übersicht</div>
+  <div class="card" onclick="go('board.html?board=1')">📺 Board Ansicht</div>
+  <div class="card" onclick="go('input.html')">📱 Eingabe</div>
+  <div class="card" onclick="go('admin.html')">⚙️ Admin</div>
+  <div class="card" onclick="go('overview.html')">📊 Übersicht</div>
 </div>
+
 <script>
-function go(u){window.location.href=u}
+window.onload = async () => {
+  await login();   // ✅ nur hier
+};
 </script>
+
+<script>
+function go(u){
+  window.location.href = u;
+}
+</script>
+
 </body>
 </html>
