@@ -2,75 +2,82 @@
 <html>
 <head>
 
-<script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/graph.js"></script>
-<script src="js/board.js"></script>
+  <title>Darts Board</title>
 
-<style>
-body{
-  margin:0;
-  background:#000;
-  color:white;
-  font-family:Arial, sans-serif;
-  text-align:center;
-}
+  <!-- ✅ MSAL -->
+  <script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
 
-/* SPIELER */
-.players{
-  display:flex;
-  justify-content:space-around;
-  margin-top:40px;
-  font-size:40px;
-}
+  <!-- ✅ Deine Scripts (Reihenfolge wichtig!) -->
+  <script src="js/auth.js"></script>
+  <script src="js/graph.js"></script>
+  <script src="js/board.js"></script>
 
-/* AKTIVER SPIELER */
-.active{
-  color:yellow;
-  text-shadow:0 0 10px yellow;
-}
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
 
-/* SCORE */
-.score{
-  font-size:120px;
-  margin:40px 0;
-  color:red;
-  text-shadow:0 0 20px red;
-}
+    /* BOARD LABEL */
+    #boardLabel {
+      position: absolute;
+      top: 10px;
+      left: 20px;
+      font-size: 20px;
+      color: #aaa;
+    }
 
-/* CHECKOUT */
-.checkout{
-  font-size:40px;
-  color:#00ff88;
-  text-shadow:0 0 10px #00ff88;
-}
+    /* SPIELER */
+    .players {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 60px;
+      font-size: 40px;
+    }
 
-/* BOARD LABEL */
-.board{
-  position:absolute;
-  top:10px;
-  left:20px;
-  font-size:20px;
-  color:#aaa;
-}
+    /* AKTIVER SPIELER */
+    .active {
+      color: yellow;
+      text-shadow: 0 0 10px yellow;
+    }
 
-</style>
+    /* SCORE */
+    .score {
+      font-size: 120px;
+      margin: 40px 0;
+      color: red;
+      text-shadow: 0 0 20px red;
+    }
+
+    /* CHECKOUT */
+    .checkout {
+      font-size: 40px;
+      color: #00ff88;
+      text-shadow: 0 0 10px #00ff88;
+      margin-top: 20px;
+    }
+
+  </style>
 
 </head>
 
 <body>
 
-<div class="board" id="boardLabel"></div>
+  <!-- ✅ WICHTIG: diese IDs müssen exakt existieren -->
 
-<div class="players">
-  <div id="p1"></div>
-  <div id="p2"></div>
-</div>
+  <div id="boardLabel"></div>
 
-<div class="score" id="score"></div>
+  <div class="players">
+    <div id="p1"></div>   <!-- Spieler 1 -->
+    <div id="p2"></div>   <!-- Spieler 2 -->
+  </div>
 
-<div class="checkout" id="checkout"></div>
+  <div class="score" id="score"></div>      <!-- Score Anzeige -->
+
+  <div class="checkout" id="checkout"></div> <!-- Checkout Anzeige -->
 
 </body>
 </html>
-
