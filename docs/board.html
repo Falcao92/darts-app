@@ -7,7 +7,7 @@
   <!-- ✅ MSAL -->
   <script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
 
-  <!-- ✅ Deine Scripts (Reihenfolge wichtig!) -->
+  <!-- ✅ KORREKTE SCRIPT TAGS -->
   <script src="js/auth.js"></script>
   <script src="js/graph.js"></script>
   <script src="js/board.js"></script>
@@ -21,16 +21,13 @@
       text-align: center;
     }
 
-    /* BOARD LABEL */
     #boardLabel {
       position: absolute;
       top: 10px;
       left: 20px;
-      font-size: 20px;
       color: #aaa;
     }
 
-    /* SPIELER */
     .players {
       display: flex;
       justify-content: space-around;
@@ -38,26 +35,19 @@
       font-size: 40px;
     }
 
-    /* AKTIVER SPIELER */
     .active {
       color: yellow;
-      text-shadow: 0 0 10px yellow;
     }
 
-    /* SCORE */
     .score {
       font-size: 120px;
       margin: 40px 0;
       color: red;
-      text-shadow: 0 0 20px red;
     }
 
-    /* CHECKOUT */
     .checkout {
       font-size: 40px;
       color: #00ff88;
-      text-shadow: 0 0 10px #00ff88;
-      margin-top: 20px;
     }
 
   </style>
@@ -66,18 +56,18 @@
 
 <body>
 
-  <!-- ✅ WICHTIG: diese IDs müssen exakt existieren -->
+  <!-- ✅ DIESE ELEMENTE SIND PFLICHT -->
 
   <div id="boardLabel"></div>
 
   <div class="players">
-    <div id="p1"></div>   <!-- Spieler 1 -->
-    <div id="p2"></div>   <!-- Spieler 2 -->
+    <div id="p1">P1</div>
+    <div id="p2">P2</div>
   </div>
 
-  <div class="score" id="score"></div>      <!-- Score Anzeige -->
+  <div class="score" id="score">0 : 0</div>
 
-  <div class="checkout" id="checkout"></div> <!-- Checkout Anzeige -->
+  <div class="checkout" id="checkout"></div>
 
 </body>
 </html>
