@@ -51,7 +51,7 @@ function updateUI() {
   if (!currentMatch || !currentMatch.fields) return;
 
   const f = currentMatch.fields;
-
+set("legs", `${f.Legs1 || 0} : ${f.Legs2 || 0}`);
   set("boardLabel", "Board " + f.BoardId);
   set("p1", f.Player1 || "-");
   set("p2", f.Player2 || "-");
