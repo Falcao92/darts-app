@@ -1,7 +1,7 @@
 let players = [];
 
 async function loadPlayers() {
-await ensureLogin();
+
 
   const res = await fetch(
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Players/items?expand=fields`,
