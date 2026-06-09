@@ -1,13 +1,78 @@
 <!DOCTYPE html>
-<html><head>
+<html>
+<head>
+
 <script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/graph.js"></script>
 <script src="js/admin.js"></script>
+
+<style>
+body{
+  background:#000;
+  color:white;
+  font-family:Arial;
+  text-align:center;
+}
+
+h2{
+  color:red;
+}
+
+.container{
+  margin:20px;
+}
+
+input, select{
+  padding:8px;
+  margin:5px;
+}
+
+button{
+  padding:8px 12px;
+  margin:5px;
+  background:red;
+  color:white;
+  border:none;
+}
+
+.player{
+  margin:5px;
+}
+</style>
+
 </head>
+
 <body>
-<h1>Admin</h1>
-<input id="name"><button onclick="createPlayer()">Spieler anlegen</button>
+
+<h1>⚙️ Admin</h1>
+
+<div class="container">
+<h2>👤 Spieler</h2>
+
+<input id="name" placeholder="Name">
+<button onclick="createPlayer()">➕ Spieler</button>
+
 <div id="players"></div>
-<button onclick="createMatch()">Test Match</button>
-</body></html>
+</div>
+
+
+<div class="container">
+<h2>🎯 Trainingsspiel</h2>
+
+<select id="p1"></select>
+<select id="p2"></select>
+
+<button onclick="createTraining()">Match starten</button>
+</div>
+
+
+<div class="container">
+<h2>🏆 Turnier</h2>
+
+<button onclick="createKO()">KO Turnier</button>
+<button onclick="createGroups()">Gruppenphase</button>
+</div>
+
+</body>
+</html>
