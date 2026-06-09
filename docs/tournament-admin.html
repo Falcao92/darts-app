@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Turnier Admin</title>
+  <script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/graph.js"></script>
+  <script src="js/tournament-admin.js"></script>
+</head>
+<body>
+
+<h1>Turnier erstellen</h1>
+
+<h3>Spieler auswählen</h3>
+<div id="playerList"></div>
+
+<br>
+
+<select id="mode">
+  <option value="ko">KO Turnier</option>
+  <option value="group">Gruppenphase</option>
+</select>
+
+<br><br>
+
+<button onclick="createTournament()">Turnier starten</button>
+
+</body>
+</html>
