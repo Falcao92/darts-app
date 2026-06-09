@@ -49,6 +49,27 @@ button{
   font-size:22px;
   color:lightgreen;
 }
+  #buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.btn {
+  width: 70px;
+  height: 50px;
+  margin: 5px;
+  font-size: 16px;
+  background: #222;
+  color: white;
+  border: 2px solid red;
+  border-radius: 6px;
+}
+
+.btn:hover {
+  background: red;
+}
 </style>
 
 </head>
@@ -75,6 +96,9 @@ button{
 <input id="d1" placeholder="T20">
 <input id="d2">
 <input id="d3">
+<h2>Darts</h2>
+
+<div id="buttons"></div>
 
 <br>
 
