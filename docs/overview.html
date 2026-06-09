@@ -54,12 +54,22 @@
 
 <h1>🎯 Darts System</h1>
 
-<div class="grid">
-  <div class="card" onclick="go('board.html?board=1')">📺 Board Ansicht</div>
-  <div class="card" onclick="go('input.html')">📱 Eingabe</div>
-  <div class="card" onclick="go('admin.html')">⚙️ Admin</div>
-  <div class="card" onclick="go('overview.html')">📊 Übersicht</div>
-</div>
+window.addEventListener("DOMContentLoaded", async () => {
+
+  const ok = await ensureLogin();
+  if (!ok) return;
+
+  const matches = await getList("Matches");
+
+  let html = "<h2>Aktuelle Spiele</h2>";
+
+  matches.forEach(m=>{
+    const f=m.fields;
+    html += `<p>${f.Player1} ${f.Score1}:${f.Score2} ${f.Player2}</p>`;
+  });
+
+  document.getElementById("out").innerHTML = html;
+});
 
 <script>
 window.onload = async () => {
