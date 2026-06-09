@@ -1,3 +1,26 @@
+let currentMatches = [];
+
+async function loadMatchDropdown() {
+  await ensureLogin();
+
+  const matches = await getMatches();
+  currentMatches = matches;
+
+  const select = document.getElementById("matchSelect");
+  select.innerHTML = "";
+
+  matches.forEach(m => {
+    const f = m.fields;
+
+    const option = document.createElement("option");
+    option.value = m.id;
+    option.text = `${f.Player1} vs ${f.Player2} (Board ${f.BoardId})`;
+
+    select.appendChild(option);
+  });
+}
+
+
 async function switchTurn(id, next) {
   await fetch(
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${id}/fields`,
@@ -26,7 +49,9 @@ async function submitDarts() {
 
   await ensureLogin(); // 🔥 wichtig!
 
-  const id = document.getElementById("matchId").value;
+ const id = document.getElementById("matchSelect").value;
+
+const match = currentMatches.find(m => m.id == id);
 
   const d1 = parseDart(document.getElementById("dart1").value);
   const d2 = parseDart(document.getElementById("dart2").value);
@@ -94,3 +119,4 @@ function updateCheckout(score) {
   document.getElementById("checkout").innerHTML =
     list.map(x => `<p>${x}</p>`).join("");
 }
+loadMatchDropdown();
