@@ -224,3 +224,33 @@ function getCheckout(score){
 
   return map[score] || "";
 }
+function createButtons(){
+
+  const div = document.getElementById("buttons");
+
+  div.innerHTML = "";
+
+  // ✅ Zahlen 1–20
+  for(let i=1;i<=20;i++){
+
+    addButton(i, i);
+    addButton("D"+i, "D"+i);
+    addButton("T"+i, "T"+i);
+  }
+
+  addButton("25","25");
+  addButton("BULL","BULL");
+}
+
+
+function addButton(label, value){
+
+  const btn = document.createElement("button");
+
+  btn.innerHTML = label;
+  btn.className = "btn";
+
+  btn.onclick = () => insertDart(value);
+
+  document.getElementById("buttons").appendChild(btn);
+}
