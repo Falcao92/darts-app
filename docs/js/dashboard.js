@@ -1,1 +1,0 @@
-async function load(){await refresh();setInterval(refresh,3000);} async function refresh(){const matches=await getMatches();document.getElementById("matches").innerHTML=matches.map(m=>`${m.fields.Player1} vs ${m.fields.Player2} (${m.fields.Score1}:${m.fields.Score2})`).join("<br>");} load();
