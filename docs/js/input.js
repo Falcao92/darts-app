@@ -1,5 +1,6 @@
 let matches = [];
 let currentMatch = null;
+let currentInput = 1;   // ✅ merkt welcher Dart gerade gewählt wird (1–3)
 
 window.addEventListener("DOMContentLoaded", async () => {
 
@@ -11,12 +12,15 @@ window.addEventListener("DOMContentLoaded", async () => {
   const boards = [...new Set(matches.map(m => m.fields.BoardId))];
 
   const sel = document.getElementById("boardSelect");
+  sel.innerHTML = "";
 
   boards.forEach(b => {
     sel.innerHTML += `<option value="${b}">Board ${b}</option>`;
   });
 
   sel.addEventListener("change", loadMatch);
+
+  createButtons();   // 🔥 Buttons erzeugen
 
   loadMatch();
 });
@@ -62,20 +66,69 @@ function updateUI(){
 }
 
 
-// ✅ Dart Parsing
+// ✅ Dart Parsing (robust)
 function parse(v){
 
   if(!v) return 0;
 
-  v = v.toUpperCase();
+  v = v.toUpperCase().trim().replace(" ", "");
 
-  if(v==="BULL") return 50;
-  if(v==="25") return 25;
+  if(v === "BULL") return 50;
+  if(v === "25") return 25;
 
-  if(v.startsWith("T")) return 3*parseInt(v.slice(1));
-  if(v.startsWith("D")) return 2*parseInt(v.slice(1));
+  if(v.startsWith("T")) return 3 * parseInt(v.slice(1));
+  if(v.startsWith("D")) return 2 * parseInt(v.slice(1));
 
-  return parseInt(v)||0;
+  return parseInt(v) || 0;
+}
+
+
+// ✅ Klick-Buttons erstellen
+function createButtons(){
+
+  const div = document.getElementById("buttons");
+  div.innerHTML = "";
+
+  for(let i = 1; i <= 20; i++){
+    addButton(i, i);
+    addButton("D"+i, "D"+i);
+    addButton("T"+i, "T"+i);
+  }
+
+  addButton("25", "25");
+  addButton("BULL", "BULL");
+}
+
+
+// ✅ Button hinzufügen
+function addButton(label, value){
+
+  const btn = document.createElement("button");
+
+  btn.innerHTML = label;
+  btn.className = "btn";
+
+  btn.onclick = () => insertDart(value);
+
+  document.getElementById("buttons").appendChild(btn);
+}
+
+
+// ✅ Dart setzen (Flow 1→2→3)
+function insertDart(value){
+
+  if(currentInput === 1){
+    d1.value = value;
+    currentInput = 2;
+  }
+  else if(currentInput === 2){
+    d2.value = value;
+    currentInput = 3;
+  }
+  else{
+    d3.value = value;
+    currentInput = 1;
+  }
 }
 
 
@@ -108,27 +161,24 @@ async function submit(){
 
     let newScore = score1 - total;
 
-    // ❌ Bust
     if(newScore < 0 || newScore === 1){
       turn = "p2";
     }
 
-    // ✅ LEG GEWONNEN
     else if(newScore === 0){
 
       legs1++;
 
-      // ✅ Match gewonnen?
       if(legs1 >= legsToWin){
         alert(f.Player1 + " gewinnt das Match!");
       }
 
       await updateMatch(id, 501, 501, "p2", legs1, legs2);
+      resetInputs();
       return;
     }
 
-    // ✅ normaler Wurf
-    else {
+    else{
       score1 = newScore;
       turn = "p2";
     }
@@ -136,7 +186,7 @@ async function submit(){
 
 
   // 🎯 PLAYER 2
-  else {
+  else{
 
     let newScore = score2 - total;
 
@@ -153,10 +203,11 @@ async function submit(){
       }
 
       await updateMatch(id, 501, 501, "p1", legs1, legs2);
+      resetInputs();
       return;
     }
 
-    else {
+    else{
       score2 = newScore;
       turn = "p1";
     }
@@ -165,9 +216,7 @@ async function submit(){
 
   await updateMatch(id, score1, score2, turn, legs1, legs2);
 
-  d1.value = "";
-  d2.value = "";
-  d3.value = "";
+  resetInputs();
 
   matches = await getList("Matches");
   currentMatch = matches.find(m => m.id === id);
@@ -176,7 +225,16 @@ async function submit(){
 }
 
 
-// ✅ SharePoint Update
+// ✅ Inputs zurücksetzen
+function resetInputs(){
+  d1.value = "";
+  d2.value = "";
+  d3.value = "";
+  currentInput = 1;
+}
+
+
+// ✅ Update SharePoint
 async function updateMatch(id, s1, s2, turn, legs1, legs2){
 
   const token = await getToken();
@@ -223,34 +281,4 @@ function getCheckout(score){
   };
 
   return map[score] || "";
-}
-function createButtons(){
-
-  const div = document.getElementById("buttons");
-
-  div.innerHTML = "";
-
-  // ✅ Zahlen 1–20
-  for(let i=1;i<=20;i++){
-
-    addButton(i, i);
-    addButton("D"+i, "D"+i);
-    addButton("T"+i, "T"+i);
-  }
-
-  addButton("25","25");
-  addButton("BULL","BULL");
-}
-
-
-function addButton(label, value){
-
-  const btn = document.createElement("button");
-
-  btn.innerHTML = label;
-  btn.className = "btn";
-
-  btn.onclick = () => insertDart(value);
-
-  document.getElementById("buttons").appendChild(btn);
 }
