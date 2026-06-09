@@ -1,6 +1,7 @@
 async function createPlayer() {
 
-  // ❌ REMOVE ensureLogin()
+  // ✅ IMMER Token holen
+  const token = await getAccessToken();
 
   const name = document.getElementById("name").value;
 
@@ -14,7 +15,7 @@ async function createPlayer() {
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${token}`,   // ✅ nicht mehr accessToken!
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
