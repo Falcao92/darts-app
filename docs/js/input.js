@@ -1,7 +1,7 @@
 let currentMatches = [];
 
 async function loadMatchDropdown() {
-  await ensureLogin();
+
 
   const matches = await getMatches();
   currentMatches = matches;
