@@ -1,26 +1,81 @@
-<body>
-
-  
+<!DOCTYPE html>
+<html>
 <head>
 
-  <script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
+<script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/graph.js"></script>
+<script src="js/input.js"></script>
 
-  <script src="js/auth.js"></script>
-  <script src="js/graph.js"></script>   <!-- ✅ DAS FEHLT BEI DIR -->
-  <script src="js/input.js"></script>
+<style>
+body{
+  background:#000;
+  color:#fff;
+  font-family:Arial;
+  text-align:center;
+}
+
+select, input{
+  font-size:20px;
+  padding:10px;
+  margin:5px;
+}
+
+button{
+  font-size:20px;
+  padding:10px;
+  margin-top:10px;
+  background:red;
+  color:white;
+  border:none;
+}
+
+#players{
+  margin:20px;
+  font-size:24px;
+}
+
+.score{
+  font-size:50px;
+  margin:20px;
+}
+
+.turn{
+  color:yellow;
+}
+
+.checkout{
+  margin-top:10px;
+  font-size:22px;
+  color:lightgreen;
+}
+</style>
 
 </head>
 
-<h1>Punkte Eingabe</h1>
+<body>
 
-<select id="matchSelect"></select>
+<h1>🎯 Punkte Eingabe</h1>
 
-<br><br>
+<select id="boardSelect"></select>
+
+<div id="players"></div>
+
+<div class="score" id="score"></div>
+
+<div class="turn" id="turn"></div>
+
+<div class="checkout" id="checkout"></div>
+
+<br>
 
 <input id="d1" placeholder="T20">
 <input id="d2">
 <input id="d3">
 
+<br>
+
 <button onclick="submit()">Speichern</button>
 
 </body>
+</html>
