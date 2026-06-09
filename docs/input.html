@@ -1,14 +1,68 @@
-<body>
-<h1>Punkte Eingabe</h1>
+let matches = [];
 
-<select id="matchSelect"></select>
+window.addEventListener("DOMContentLoaded", async () => {
+  const ok = await ensureLogin();
+  if (!ok) return;
 
-<br><br>
+  matches = await getList("Matches");
 
-<input id="d1" placeholder="T20">
-<input id="d2">
-<input id="d3">
+  const sel = document.getElementById("matchSelect");
 
-<button onclick="submit()">Speichern</button>
+  matches.forEach(m => {
+    const f = m.fields;
+    sel.innerHTML += `<option value="${m.id}">
+      ${f.Player1} vs ${f.Player2} (Board ${f.BoardId})
+    </option>`;
+  });
+});
 
-</body>
+
+function parse(v){
+  if(!v) return 0;
+  v=v.toUpperCase();
+  if(v=="BULL") return 50;
+  if(v[0]=="T") return 3*parseInt(v.slice(1));
+  if(v[0]=="D") return 2*parseInt(v.slice(1));
+  return parseInt(v)||0;
+}
+
+
+async function submit(){
+
+  const id = document.getElementById("matchSelect").value;
+  const match = matches.find(x => x.id == id);
+
+  const total =
+    parse(d1.value) +
+    parse(d2.value) +
+    parse(d3.value);
+
+  let f = match.fields;
+
+  let score1 = f.Score1;
+  let score2 = f.Score2;
+
+  if(f.Turn=="p1"){
+    score1 -= total;
+    await update(id,{Score1:score1, Turn:"p2"});
+  } else {
+    score2 -= total;
+    await update(id,{Score2:score2, Turn:"p1"});
+  }
+}
+
+
+async function update(id,data){
+  const t = await getToken();
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${id}/fields`,
+  {
+    method:"PATCH",
+    headers:{
+      Authorization:`Bearer ${t}`,
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify(data)
+  });
+}
