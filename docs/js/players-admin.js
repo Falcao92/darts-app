@@ -1,5 +1,4 @@
 async function loadPlayers() {
-await ensureLogin();
 
   const res = await fetch(
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Players/items?expand=fields`,
@@ -23,7 +22,7 @@ await ensureLogin();
 }
 
 async function createPlayer() {
-await ensureLogin();
+  await ensureLogin();
 
   const name = document.getElementById("name").value;
 
@@ -53,9 +52,11 @@ await ensureLogin();
   await loadPlayers();
 }
 
+
+// ✅ ✅ WICHTIG: Statt direktem Aufruf!
 window.addEventListener("DOMContentLoaded", async () => {
 
-  await ensureLogin();   // ✅ erst jetzt
+  await ensureLogin();
+  await loadPlayers();
 
-  await loadPlayers();   // ✅ danach
 });
