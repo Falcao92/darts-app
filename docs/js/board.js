@@ -2,7 +2,7 @@ const params = new URLSearchParams(window.location.search);
 const boardId = params.get("board");
 
 async function loadBoard() {
-  await login();
+   await ensureLogin();
   refreshBoard();
 }
 
