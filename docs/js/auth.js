@@ -9,11 +9,14 @@ const msalConfig = {
 const msalInstance = new msal.PublicClientApplication(msalConfig);
 
 let accessToken = null;
-let msalInitialized = false;
+let initialized = false;
 
 
-// ✅ WICHTIG: EINMAL initialisieren
+// ✅ INIT läuft genau einmal
 async function initAuth() {
+
+  if (initialized) return;
+
   const result = await msalInstance.handleRedirectPromise();
 
   const accounts = msalInstance.getAllAccounts();
@@ -26,26 +29,25 @@ async function initAuth() {
       });
 
       accessToken = token.accessToken;
+
     } catch (e) {
-      console.log("Token konnte nicht geladen werden");
+      console.log("Silent Token fehlgeschlagen");
     }
   }
 
-  msalInitialized = true;
+  initialized = true;
 }
 
 
-// ✅ LOGIN NUR WENN NÖTIG
+// ✅ KEIN redirect mehr wenn schon eingeloggt
 async function ensureLogin() {
 
-  if (!msalInitialized) {
-    await initAuth();
-  }
+  await initAuth();
 
   const accounts = msalInstance.getAllAccounts();
 
   if (accounts.length > 0) {
-    return;
+    return; // ✅ fertig → KEIN redirect
   }
 
   await msalInstance.loginRedirect({
