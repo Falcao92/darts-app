@@ -23,7 +23,7 @@ await ensureLogin();
 }
 
 async function createPlayer() {
-  await login();
+await ensureLogin();
 
   const name = document.getElementById("name").value;
 
