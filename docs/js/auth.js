@@ -12,41 +12,42 @@ let accessToken = null;
 
 async function login() {
 
-  // 👉 prüfen ob bereits eingeloggt
+const currentUrl = window.location.href;
+sessionStorage.setItem("redirectAfterLogin", currentUrl);
+
   const accounts = msalInstance.getAllAccounts();
 
   if (accounts.length > 0) {
-    try {
-      const result = await msalInstance.acquireTokenSilent({
-        scopes: ["User.Read", "Sites.ReadWrite.All"],
-        account: accounts[0]
-      });
+    const result = await msalInstance.acquireTokenSilent({
+      scopes: ["User.Read", "Sites.ReadWrite.All"],
+      account: accounts[0]
+    });
 
-      accessToken = result.accessToken;
-      console.log("✅ Token geladen");
-      return accessToken;
-
-    } catch (e) {
-      console.log("Silent Token fehlgeschlagen → redirect");
-    }
+    accessToken = result.accessToken;
+    return;
   }
 
-  // 👉 Login starten wenn kein Token
   await msalInstance.loginRedirect({
     scopes: ["User.Read", "Sites.ReadWrite.All"]
   });
 }
 
-// 👉 sehr wichtig für redirect login
 msalInstance.handleRedirectPromise().then(async (result) => {
   if (result && result.account) {
+
     const tokenResponse = await msalInstance.acquireTokenSilent({
       scopes: ["User.Read", "Sites.ReadWrite.All"],
       account: result.account
     });
 
     accessToken = tokenResponse.accessToken;
-    console.log("✅ Token nach Redirect");
+
+    // 🔥 Zurück zur ursprünglichen Seite
+const redirectUrl = sessionStorage.getItem("redirectAfterLogin");
+
+if (redirectUrl && window.location.href !== redirectUrl) {
+  window.location.href = redirectUrl;
+}
   }
 });
-``
+
