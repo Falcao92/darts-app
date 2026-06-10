@@ -3,124 +3,108 @@ window.addEventListener("DOMContentLoaded", async () => {
   const ok = await ensureLogin();
   if (!ok) return;
 
-  load();
+  update();
 
-  // 🔥 Live Update
-  setInterval(load, 3000);
+  setInterval(update, 3000);
 });
 
 
-async function load(){
+async function update(){
 
   const matches = await getList("Matches");
 
-  showBoards(matches);
-  showGroups(matches);
-  showKO(matches);
+  renderBoards(matches);
+  renderGroups(matches);
 }
 
 
-// ==========================
-// 📺 BOARDS (LIVE)
-// ==========================
-function showBoards(matches){
+// ===================================
+// 📺 BOARDS ALS KACHELN
+// ===================================
+function renderBoards(matches){
 
   const div = document.getElementById("boards");
 
-  let html = "<h2>📺 Aktuelle Spiele</h2>";
+  const boards = [...new Set(matches.map(m => m.fields.BoardId))];
 
-  const active = matches.filter(m =>
-    m.fields &&
-    m.fields.Status === "active"
-  );
+  let html = "";
 
-  if(active.length === 0){
-    div.innerHTML = "<p>Keine aktiven Spiele</p>";
-    return;
-  }
+  boards.forEach(boardId => {
 
-  active.forEach(m => {
+    // ✅ aktuelles Spiel
+    const live = matches.find(m =>
+      m.fields &&
+      m.fields.BoardId == boardId &&
+      m.fields.Status === "active"
+    );
 
-    const f = m.fields;
+    // ✅ nächstes Spiel
+    const next = matches.find(m =>
+      m.fields &&
+      m.fields.BoardId == boardId &&
+      m.fields.Status !== "active" &&
+      m.fields.Status !== "finished"
+    );
 
-    html += `
-      <div class="match live">
-        <div class="board">Board ${f.BoardId}</div>
-        ${f.Player1} vs ${f.Player2}<br>
-        ${f.Score1} : ${f.Score2}
-      </div>
-    `;
+    html += `<div class="board">`;
+    html += `<div class="title">Board ${boardId}</div>`;
+
+    if(live){
+      html += `
+        <div class="live">
+          ${live.fields.Player1} vs ${live.fields.Player2}<br>
+          ${live.fields.Score1} : ${live.fields.Score2}
+        </div>
+      `;
+    } else {
+      html += `<div>kein Spiel</div>`;
+    }
+
+    if(next){
+      html += `
+        <div class="next">
+          Next:<br>
+          ${next.fields.Player1} vs ${next.fields.Player2}
+        </div>
+      `;
+    }
+
+    html += `</div>`;
   });
 
   div.innerHTML = html;
 }
 
 
-// ==========================
-// 🧩 GRUPPEN SPIELE
-// ==========================
-function showGroups(matches){
+// ===================================
+// 🧩 GRUPPEN KOMPAKT
+// ===================================
+function renderGroups(matches){
 
   const div = document.getElementById("groups");
 
-  let html = "<h2>🧩 Gruppenphase</h2>";
+  let groups = {};
 
-  const groupMatches = matches.filter(m =>
-    m.fields &&
-    m.fields.Round === "group"
-  );
-
-  if(groupMatches.length === 0){
-    div.innerHTML = "";
-    return;
-  }
-
-  groupMatches.forEach(m => {
+  matches.forEach(m => {
 
     const f = m.fields;
 
-    html += `
-      <div class="match ${f.Status === "finished" ? "finished" : ""}">
-        Gruppe ${f.Group} |
-        ${f.Player1} vs ${f.Player2} |
-        Board ${f.BoardId}
-      </div>
-    `;
+    if(f.Group){
+      if(!groups[f.Group]) groups[f.Group] = [];
+      groups[f.Group].push(f.Player1, f.Player2);
+    }
   });
 
-  div.innerHTML = html;
-}
+  let html = "";
 
+  Object.keys(groups).forEach(g => {
 
-// ==========================
-// 🏆 KO PHASE
-// ==========================
-function showKO(matches){
-
-  const div = document.getElementById("ko");
-
-  let html = "<h2>🏆 KO Phase</h2>";
-
-  const koMatches = matches.filter(m =>
-    m.fields &&
-    m.fields.Round !== "group" &&
-    m.fields.Round !== ""
-  );
-
-  if(koMatches.length === 0){
-    div.innerHTML = "";
-    return;
-  }
-
-  koMatches.forEach(m => {
-
-    const f = m.fields;
+    const players = [...new Set(groups[g])];
 
     html += `
-      <div class="match ${f.Status === "finished" ? "finished" : ""}">
-        ${f.Round.toUpperCase()} |
-        ${f.Player1} vs ${f.Player2} |
-        Board ${f.BoardId}
+      <div class="group">
+        <b>Gruppe ${g}</b><br>
+        ${players.join("<br>")}
       </div>
     `;
   });
