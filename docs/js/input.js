@@ -9,15 +9,10 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   matches = await getList("Matches");
 
-  // ✅ NUR Boards mit aktiven Matches
   const boards = [
     ...new Set(
       matches
-        .filter(m =>
-          m.fields &&
-          m.fields.Status === "active" &&
-          m.fields.BoardId
-        )
+        .filter(m => m.fields && m.fields.BoardId)
         .map(m => m.fields.BoardId)
     )
   ];
@@ -32,32 +27,25 @@ window.addEventListener("DOMContentLoaded", async () => {
   sel.addEventListener("change", loadMatch);
 
   createButtons();
-
   loadMatch();
 });
 
 
-// ✅ MATCH LADEN (MIT STATUS FILTER)
+// ==========================
+// MATCH LADEN
+// ==========================
 function loadMatch(){
 
   const board = document.getElementById("boardSelect").value;
 
-  const activeMatches = matches.filter(m =>
+  currentMatch = matches.find(m =>
     m.fields &&
     m.fields.BoardId == board &&
-    m.fields.Status === "active" &&
-    m.fields.Player1 &&
-    m.fields.Player2
+    m.fields.Status === "active"
   );
-
-  currentMatch = activeMatches[0];
 
   if(!currentMatch){
     set("players", "Kein aktives Spiel");
-    set("score", "");
-    set("turn", "");
-    set("checkout", "");
-    set("legs", "");
     return;
   }
 
@@ -65,7 +53,9 @@ function loadMatch(){
 }
 
 
-// ✅ UI aktualisieren
+// ==========================
+// UI
+// ==========================
 function updateUI(){
 
   const f = currentMatch.fields;
@@ -73,27 +63,21 @@ function updateUI(){
   set("players", `${f.Player1} vs ${f.Player2}`);
   set("score", `${f.Score1} : ${f.Score2}`);
   set("turn", "👉 " + (f.Turn === "p1" ? f.Player1 : f.Player2));
-  set("legs", `Legs: ${f.Legs1 || 0} : ${f.Legs2 || 0}`);
-
-  const score = f.Turn === "p1" ? f.Score1 : f.Score2;
-
-  set("checkout", getCheckout(score));
 }
 
 
-// ✅ Safe Setter
+// ==========================
+// HELFER
+// ==========================
 function set(id, val){
   const el = document.getElementById(id);
   if(el) el.innerHTML = val;
 }
 
-
-// ✅ Dart Parsing
 function parse(v){
-
   if(!v) return 0;
 
-  v = v.toUpperCase().trim().replace(" ", "");
+  v = v.toUpperCase().trim();
 
   if(v === "BULL") return 50;
   if(v === "25") return 25;
@@ -104,38 +88,44 @@ function parse(v){
   return parseInt(v) || 0;
 }
 
+// ✅ DOUBLE CHECK
+function isDouble(v){
+  return v && v.toUpperCase().startsWith("D");
+}
 
-// ✅ Buttons erstellen
+
+// ==========================
+// BUTTONS
+// ==========================
 function createButtons(){
 
   const div = document.getElementById("buttons");
   div.innerHTML = "";
 
   for(let i = 1; i <= 20; i++){
-    addButton(i, i);
-    addButton("D"+i, "D"+i);
-    addButton("T"+i, "T"+i);
+    addButton(i);
+    addButton("D"+i);
+    addButton("T"+i);
   }
 
-  addButton("25", "25");
-  addButton("BULL", "BULL");
+  addButton("25");
+  addButton("BULL");
 }
 
-
-function addButton(label, value){
+function addButton(value){
 
   const btn = document.createElement("button");
 
-  btn.innerHTML = label;
-  btn.className = "btn";
-
+  btn.innerText = value;
   btn.onclick = () => insertDart(value);
 
   document.getElementById("buttons").appendChild(btn);
 }
 
 
-// ✅ Dart setzen
+// ==========================
+// DART INPUT
+// ==========================
 function insertDart(value){
 
   if(currentInput === 1){
@@ -153,7 +143,9 @@ function insertDart(value){
 }
 
 
-// ✅ Hauptlogik
+// ==========================
+// SUBMIT (WICHTIG!)
+// ==========================
 async function submit(){
 
   if(!currentMatch) return;
@@ -170,35 +162,48 @@ async function submit(){
   let score2 = f.Score2;
   let legs1 = f.Legs1 || 0;
   let legs2 = f.Legs2 || 0;
-  let legsToWin = f.LegsToWin || 3;
   let turn = f.Turn;
 
+  const lastDart = d3.value || d2.value || d1.value;
 
+
+  // ==========================
+  // PLAYER 1
+  // ==========================
   if(turn === "p1"){
 
     let ns = score1 - total;
 
     if(ns < 0 || ns === 1){
-      turn = "p2"; // Bust
+      turn = "p2";
     }
-    else if(ns === 0){
+
+    else if(ns === 0 && isDouble(lastDart)){
 
       legs1++;
 
-      if(legs1 >= legsToWin){
-        alert(f.Player1 + " gewinnt das Match!");
-      }
+      alert(f.Player1 + " gewinnt das Leg!");
 
-      await updateMatch(id, 501, 501, "p2", legs1, legs2);
+      await updateMatch(id, 501, 501, "p2", legs1, legs2, f.Player1);
+
       resetInputs();
       return;
     }
+
+    else if(ns === 0){
+      // ❌ kein Double
+      turn = "p2";
+    }
+
     else{
       score1 = ns;
       turn = "p2";
     }
   }
 
+  // ==========================
+  // PLAYER 2
+  // ==========================
   else{
 
     let ns = score2 - total;
@@ -206,18 +211,23 @@ async function submit(){
     if(ns < 0 || ns === 1){
       turn = "p1";
     }
-    else if(ns === 0){
+
+    else if(ns === 0 && isDouble(lastDart)){
 
       legs2++;
 
-      if(legs2 >= legsToWin){
-        alert(f.Player2 + " gewinnt das Match!");
-      }
+      alert(f.Player2 + " gewinnt das Leg!");
 
-      await updateMatch(id, 501, 501, "p1", legs1, legs2);
+      await updateMatch(id, 501, 501, "p1", legs1, legs2, f.Player2);
+
       resetInputs();
       return;
     }
+
+    else if(ns === 0){
+      turn = "p1";
+    }
+
     else{
       score2 = ns;
       turn = "p1";
@@ -229,17 +239,15 @@ async function submit(){
   resetInputs();
 
   matches = await getList("Matches");
-
-  currentMatch = matches.find(m =>
-    m.id === id &&
-    m.fields.Status === "active"
-  );
+  currentMatch = matches.find(m => m.id === id);
 
   updateUI();
 }
 
 
-// ✅ Reset
+// ==========================
+// RESET
+// ==========================
 function resetInputs(){
   d1.value = "";
   d2.value = "";
@@ -248,22 +256,18 @@ function resetInputs(){
 }
 
 
-// ✅ Update
+// ==========================
+// UPDATE MATCH + AUTO NEXT
+// ==========================
 async function updateMatch(id, s1, s2, turn, legs1, legs2, winner){
 
   const token = await getToken();
 
-  // ✅ aktuelles Match laden
   const matches = await getList("Matches");
   const current = matches.find(m => m.id === id);
 
-  let status = "active";
+  let status = winner ? "finished" : "active";
 
-  if(winner){
-    status = "finished";
-  }
-
-  // ✅ Match speichern
   await fetch(
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${id}/fields`,
   {
@@ -283,20 +287,21 @@ async function updateMatch(id, s1, s2, turn, legs1, legs2, winner){
     })
   });
 
-  // ✅ AUTO NEXT MATCH
+  // ✅ AUTO NEXT
   if(winner){
     await activateNextMatch(current.fields.BoardId);
   }
 }
 
 
-
+// ==========================
+// AUTO NEXT MATCH
+// ==========================
 async function activateNextMatch(boardId){
 
   const token = await getToken();
   const matches = await getList("Matches");
 
-  // ✅ nächstes wartendes Match finden
   const next = matches.find(m =>
     m.fields &&
     m.fields.BoardId == boardId &&
@@ -304,13 +309,10 @@ async function activateNextMatch(boardId){
   );
 
   if(!next){
-    console.log("✅ Kein weiteres Spiel auf Board", boardId);
+    console.log("✅ Kein nächstes Match");
     return;
   }
 
-  console.log("➡️ Starte nächstes Match:", next.fields.Player1, "vs", next.fields.Player2);
-
-  // ✅ aktiv setzen
   await fetch(
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${next.id}/fields`,
   {
@@ -323,31 +325,4 @@ async function activateNextMatch(boardId){
       Status: "active"
     })
   });
-}
-
-
-
-// ✅ Checkout
-function getCheckout(score){
-
-  const map = {
-    170:"T20 T20 Bull",
-    167:"T20 T19 Bull",
-    164:"T20 T18 Bull",
-    161:"T20 T17 Bull",
-    160:"T20 T20 D20",
-    140:"T20 T20 D10",
-    120:"T20 20 D20",
-    100:"T20 D20",
-    80:"T20 D10",
-    60:"20 D20",
-    50:"10 D20",
-    40:"D20",
-    32:"D16",
-    24:"D12",
-    16:"D8",
-    8:"D4"
-  };
-
-  return map[score] || "";
 }
