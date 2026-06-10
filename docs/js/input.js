@@ -62,7 +62,7 @@ function updateUI(){
 
 
 // ==========================
-// HELFER
+// HELPERS
 // ==========================
 function set(id, val){
   const el = document.getElementById(id);
@@ -118,7 +118,7 @@ function addButton(value){
 
 
 // ==========================
-// INPUT
+// INPUT FLOW
 // ==========================
 function insertDart(value){
 
@@ -138,7 +138,7 @@ function insertDart(value){
 
 
 // ==========================
-// SUBMIT (FIXED)
+// SUBMIT (Richtig getrennt Leg / Match)
 // ==========================
 async function submit(){
 
@@ -174,9 +174,9 @@ async function submit(){
     else if(ns === 0 && isDouble(lastDart)){
 
       legs1++;
-
       alert(f.Player1 + " gewinnt das Leg!");
 
+      // ✅ MATCH GEWONNEN?
       if(legs1 >= legsToWin){
 
         alert(f.Player1 + " gewinnt das MATCH!");
@@ -185,7 +185,9 @@ async function submit(){
 
       } else {
 
+        // ✅ NUR LEG RESET
         await updateMatch(id, 501, 501, "p2", legs1, legs2);
+
       }
 
       resetInputs();
@@ -216,7 +218,6 @@ async function submit(){
     else if(ns === 0 && isDouble(lastDart)){
 
       legs2++;
-
       alert(f.Player2 + " gewinnt das Leg!");
 
       if(legs2 >= legsToWin){
@@ -228,6 +229,7 @@ async function submit(){
       } else {
 
         await updateMatch(id, 501, 501, "p1", legs1, legs2);
+
       }
 
       resetInputs();
@@ -253,7 +255,7 @@ async function submit(){
 
 
 // ==========================
-// RELOAD
+// RELOAD MATCH
 // ==========================
 async function reloadMatch(id){
   matches = await getList("Matches");
@@ -263,7 +265,7 @@ async function reloadMatch(id){
 
 
 // ==========================
-// RESET
+// RESET INPUTS
 // ==========================
 function resetInputs(){
   d1.value = "";
@@ -280,7 +282,7 @@ async function updateMatch(id, s1, s2, turn, legs1, legs2, winner){
 
   const token = await getToken();
 
-  let status = winner ? "finished" : "active";
+  const status = winner ? "finished" : "active";
 
   await fetch(
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${id}/fields`,
@@ -291,16 +293,17 @@ async function updateMatch(id, s1, s2, turn, legs1, legs2, winner){
       "Content-Type":"application/json"
     },
     body:JSON.stringify({
-      Score1:s1,
-      Score2:s2,
-      Turn:turn,
-      Legs1:legs1,
-      Legs2:legs2,
+      Score1: s1,
+      Score2: s2,
+      Turn: turn,
+      Legs1: legs1,
+      Legs2: legs2,
       Winner: winner || "",
       Status: status
     })
   );
 
+  // ✅ NUR BEI MATCH ENDE
   if(winner){
     await activateNextMatch(currentMatch.fields.BoardId);
   }
@@ -308,7 +311,7 @@ async function updateMatch(id, s1, s2, turn, legs1, legs2, winner){
 
 
 // ==========================
-// AUTO NEXT
+// AUTO NEXT MATCH
 // ==========================
 async function activateNextMatch(boardId){
 
