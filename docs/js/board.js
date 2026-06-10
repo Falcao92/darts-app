@@ -1,4 +1,3 @@
-// 👉 Board aus URL
 const params = new URLSearchParams(window.location.search);
 const boardId = params.get("board");
 
@@ -15,7 +14,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   loadBoard();
 
-  setInterval(loadBoard, 2000); // live refresh
+  setInterval(loadBoard, 2000);
 });
 
 
@@ -42,30 +41,41 @@ async function loadBoard(){
 
 
 // ==========================
-// UI
+// UI UPDATE
 // ==========================
 function updateUI(){
 
+  if(!currentMatch || !currentMatch.fields) return;
+
   const f = currentMatch.fields;
 
+  // ✅ Board
+  set("boardLabel", "Board " + f.BoardId);
+
+  // ✅ Spieler
   set("p1", f.Player1);
   set("p2", f.Player2);
 
+  // ✅ Score
   set("score", `${f.Score1} : ${f.Score2}`);
 
-  // ✅ LEGS FIX
+  // ✅ Legs (FIX!)
   set("legs", `${f.Legs1 || 0} : ${f.Legs2 || 0}`);
 
+  // ✅ aktiver Spieler
   highlightTurn(f);
 
-  // ✅ CHECKOUT HILFE
-  const remaining = f.Turn === "p1" ? f.Score1 : f.Score2;
-  set("checkout", getCheckout(remaining));
+  // ✅ Checkout Anzeige
+  const score = f.Turn === "p1" ? f.Score1 : f.Score2;
+
+  const checkout = getCheckout(score);
+
+  set("checkout", checkout ? "Checkout: " + checkout : "");
 }
 
 
 // ==========================
-// AKTIVER SPIELER
+// TURN HIGHLIGHT
 // ==========================
 function highlightTurn(f){
 
@@ -84,7 +94,7 @@ function highlightTurn(f){
 
 
 // ==========================
-// HELFER
+// SET HELPER
 // ==========================
 function set(id, value){
 
@@ -94,11 +104,11 @@ function set(id, value){
 
 
 // ==========================
-// CHECKOUT TABELLE
+// CHECKOUT LOGIK
 // ==========================
 function getCheckout(score){
 
-  if(score > 170) return ""; // kein Checkout möglich
+  if(score > 170) return "";
 
   const map = {
     170:"T20 T20 Bull",
