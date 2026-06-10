@@ -15,8 +15,6 @@ async function loadPlayers(){
 
   players = await getList("Players");
 
-  console.log("Geladene Spieler:", players); // Debug
-
   const div = document.getElementById("players");
   const p1 = document.getElementById("p1");
   const p2 = document.getElementById("p2");
@@ -28,10 +26,8 @@ async function loadPlayers(){
   players.forEach(p => {
 
     const name = p.fields?.Title;
-
     if(!name) return;
 
-    // ✅ Anzeige Liste
     div.innerHTML += `
       <div class="player">
         ${name}
@@ -39,69 +35,16 @@ async function loadPlayers(){
       </div>
     `;
 
-    // ✅ Dropdown
     p1.innerHTML += `<option>${name}</option>`;
     p2.innerHTML += `<option>${name}</option>`;
   });
-}
-// ==========================
-// Spielplan
-// ==========================
-
-async function showSchedule(){
-
-  const matches = await getList("Matches");
-
-  const div = document.getElementById("groupsView");
-
-  let html = "<h3>Spielplan</h3>";
-
-  // ✅ Gruppenspiele sortieren
-  const groupMatches = matches.filter(m =>
-    m.fields &&
-    m.fields.Round === "group"
-  );
-
-  if(groupMatches.length === 0){
-    div.innerHTML = "<p>Keine Spiele erstellt</p>";
-    return;
-  }
-
-  // 👉 sortieren nach Gruppe + Board
-  groupMatches.sort((a,b)=>{
-    if(a.fields.Group === b.fields.Group){
-      return a.fields.BoardId - b.fields.BoardId;
-    }
-    return a.fields.Group.localeCompare(b.fields.Group);
-  });
-
-  let currentGroup = "";
-
-  groupMatches.forEach(m => {
-
-    const f = m.fields;
-
-    // ✅ neue Gruppe beginnen
-    if(f.Group !== currentGroup){
-      currentGroup = f.Group;
-      html += `<br><b>Gruppe ${currentGroup}</b><br>`;
-    }
-
-    html += `
-      Board ${f.BoardId}: 
-      ${f.Player1} vs ${f.Player2}
-      <br>
-    `;
-  });
-
-  div.innerHTML = html;
 }
 
 
 // ==========================
 // MATCH ERSTELLEN
 // ==========================
-async function createMatch(p1, p2, board, group = "", round = "group"){
+async function createMatch(p1, p2, board, group = "", round = "group", status = "waiting"){
 
   const token = await getToken();
 
@@ -125,7 +68,7 @@ async function createMatch(p1, p2, board, group = "", round = "group"){
         LegsToWin: 3,
         BoardId: board,
         Turn: "p1",
-        Status: "active",
+        Status: status,      // ✅ wichtig!
         Group: group,
         Winner: "",
         Round: round
@@ -143,8 +86,10 @@ async function createGroups(){
   const groupSize = parseInt(document.getElementById("groupSize").value);
   const boardCount = parseInt(document.getElementById("boardCount").value);
 
-  let list = players.map(p => p.fields.Title);
+  // ✅ speichern für overview
+  localStorage.setItem("boardCount", boardCount);
 
+  let list = players.map(p => p.fields.Title);
   list.sort(() => Math.random() - 0.5);
 
   let groups = [];
@@ -159,9 +104,11 @@ async function createGroups(){
 
   for(let g=0; g<groups.length; g++){
 
-    const groupId = String.fromCharCode(65 + g); // A, B, C...
+    const groupId = String.fromCharCode(65 + g);
 
     let group = groups[g];
+
+    let firstMatch = true;
 
     for(let a=0;a<group.length;a++){
       for(let b=a+1;b<group.length;b++){
@@ -171,11 +118,13 @@ async function createGroups(){
           group[b],
           board,
           groupId,
-          "group"
+          "group",
+          firstMatch ? "active" : "waiting" // ✅ nur EIN aktives
         );
 
-        board++;
+        firstMatch = false;
 
+        board++;
         if(board > boardCount) board = 1;
       }
     }
@@ -193,10 +142,14 @@ function renderGroups(groups){
   let html = "<h3>Gruppen</h3>";
 
   groups.forEach((g, i) => {
-
     const groupId = String.fromCharCode(65 + i);
 
-    html += `<div><b>Gruppe ${groupId}</b><br>${g.join("<br>")}</div><br>`;
+    html += `
+      <div>
+        <b>Gruppe ${groupId}</b><br>
+        ${g.join("<br>")}
+      </div><br>
+    `;
   });
 
   div.innerHTML = html;
@@ -270,18 +223,18 @@ async function startKO(){
 
   const boardCount = parseInt(document.getElementById("boardCount").value);
 
+  localStorage.setItem("boardCount", boardCount);
+
   const table = await calculateGroups();
 
   let qualified = [];
 
-  // 👉 Top 2 jeder Gruppe
   Object.values(table).forEach(group => {
 
     const sorted = Object.entries(group)
       .sort((a,b)=>b[1]-a[1]);
 
     qualified.push(sorted[0][0]);
-
     if(sorted[1]) qualified.push(sorted[1][0]);
   });
 
@@ -290,13 +243,14 @@ async function startKO(){
 
 
 // ==========================
-// KO RUNDE ERZEUGEN
+// KO RUNDE
 // ==========================
 async function createKORound(players, boardCount){
 
   players.sort(()=>Math.random()-0.5);
 
   let board = 1;
+  let firstMatch = true;
 
   let roundName = getRoundName(players.length);
 
@@ -307,18 +261,20 @@ async function createKORound(players, boardCount){
       players[i+1],
       board,
       "",
-      roundName
+      roundName,
+      firstMatch ? "active" : "waiting"
     );
 
-    board++;
+    firstMatch = false;
 
+    board++;
     if(board > boardCount) board = 1;
   }
 }
 
 
 // ==========================
-// RUNDE BENENNEN
+// RUNDE NAME
 // ==========================
 function getRoundName(count){
 
