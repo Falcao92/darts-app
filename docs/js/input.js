@@ -249,10 +249,21 @@ function resetInputs(){
 
 
 // ✅ Update
-async function updateMatch(id, s1, s2, turn, legs1, legs2){
+async function updateMatch(id, s1, s2, turn, legs1, legs2, winner){
 
   const token = await getToken();
 
+  // ✅ aktuelles Match laden
+  const matches = await getList("Matches");
+  const current = matches.find(m => m.id === id);
+
+  let status = "active";
+
+  if(winner){
+    status = "finished";
+  }
+
+  // ✅ Match speichern
   await fetch(
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${id}/fields`,
   {
@@ -266,10 +277,54 @@ async function updateMatch(id, s1, s2, turn, legs1, legs2){
       Score2:s2,
       Turn:turn,
       Legs1:legs1,
-      Legs2:legs2
+      Legs2:legs2,
+      Winner: winner || "",
+      Status: status
+    })
+  });
+
+  // ✅ AUTO NEXT MATCH
+  if(winner){
+    await activateNextMatch(current.fields.BoardId);
+  }
+}
+
+
+
+async function activateNextMatch(boardId){
+
+  const token = await getToken();
+  const matches = await getList("Matches");
+
+  // ✅ nächstes wartendes Match finden
+  const next = matches.find(m =>
+    m.fields &&
+    m.fields.BoardId == boardId &&
+    m.fields.Status === "waiting"
+  );
+
+  if(!next){
+    console.log("✅ Kein weiteres Spiel auf Board", boardId);
+    return;
+  }
+
+  console.log("➡️ Starte nächstes Match:", next.fields.Player1, "vs", next.fields.Player2);
+
+  // ✅ aktiv setzen
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${next.id}/fields`,
+  {
+    method:"PATCH",
+    headers:{
+      Authorization:`Bearer ${token}`,
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+      Status: "active"
     })
   });
 }
+
 
 
 // ✅ Checkout
