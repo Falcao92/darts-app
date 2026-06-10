@@ -339,3 +339,26 @@ async function activateNextMatch(boardId){
     })
   });
 }
+async function advanceWinner(match){
+
+  const token = await getToken();
+
+  const f = match.fields;
+
+  if(!f.NextMatchId) return;
+
+  const slot = f.NextSlot === "p2" ? "Player2" : "Player1";
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${f.NextMatchId}/fields`,
+  {
+    method:"PATCH",
+    headers:{
+      Authorization:`Bearer ${token}`,
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+      [slot]: f.Winner
+    })
+  });
+}
