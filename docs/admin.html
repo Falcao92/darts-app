@@ -74,6 +74,20 @@ button{
 <div class="container">
 <h2>🏆 Turnier</h2>
 
+  <div>
+    <label>Boards verfügbar:</label>
+    <input id="boardCount" type="number" value="4" min="1">
+  </div>
+
+  <div>
+    <label>Gruppengröße:</label>
+    <input id="groupSize" type="number" value="3" min="2">
+  </div>
+
+  <button onclick="createGroups()">Gruppenphase starten</button>
+
+  <div id="groupsView"></div>
+
 <button onclick="createKO()">KO Turnier</button>
 <button onclick="createGroups()">Gruppenphase</button>
 </div>
