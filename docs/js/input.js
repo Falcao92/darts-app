@@ -7,7 +7,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   const ok = await ensureLogin();
   if (!ok) return;
 
-  matches = await getList("Matches");
+  await refreshMatches();
 
   const boards = [...new Set(matches.map(m => m.fields.BoardId))];
 
@@ -40,6 +40,9 @@ function loadMatch(){
 
   if(!currentMatch){
     set("players", "Kein aktives Spiel");
+    set("score", "-");
+    set("turn", "-");
+    set("legs", "-");
     return;
   }
 
@@ -62,7 +65,7 @@ function updateUI(){
 
 
 // ==========================
-// HELPERS
+// HELPER
 // ==========================
 function set(id, val){
   const el = document.getElementById(id);
@@ -138,7 +141,7 @@ function insertDart(value){
 
 
 // ==========================
-// SUBMIT (Richtig getrennt Leg / Match)
+// SUBMIT
 // ==========================
 async function submit(){
 
@@ -162,7 +165,7 @@ async function submit(){
   const legsToWin = f.LegsToWin || 3;
 
 
-  // ================= PLAYER 1 =================
+  // PLAYER 1
   if(turn === "p1"){
 
     let ns = score1 - total;
@@ -174,20 +177,14 @@ async function submit(){
     else if(ns === 0 && isDouble(lastDart)){
 
       legs1++;
-      alert(f.Player1 + " gewinnt das Leg!");
 
-      // ✅ MATCH GEWONNEN?
       if(legs1 >= legsToWin){
-
-        alert(f.Player1 + " gewinnt das MATCH!");
 
         await updateMatch(id, 501, 501, "p2", legs1, legs2, f.Player1);
 
       } else {
 
-        // ✅ NUR LEG RESET
         await updateMatch(id, 501, 501, "p2", legs1, legs2);
-
       }
 
       resetInputs();
@@ -198,15 +195,13 @@ async function submit(){
     else if(ns === 0){
       turn = "p2";
     }
-
     else{
       score1 = ns;
       turn = "p2";
     }
   }
 
-
-  // ================= PLAYER 2 =================
+  // PLAYER 2
   else{
 
     let ns = score2 - total;
@@ -218,18 +213,14 @@ async function submit(){
     else if(ns === 0 && isDouble(lastDart)){
 
       legs2++;
-      alert(f.Player2 + " gewinnt das Leg!");
 
       if(legs2 >= legsToWin){
-
-        alert(f.Player2 + " gewinnt das MATCH!");
 
         await updateMatch(id, 501, 501, "p1", legs1, legs2, f.Player2);
 
       } else {
 
         await updateMatch(id, 501, 501, "p1", legs1, legs2);
-
       }
 
       resetInputs();
@@ -240,7 +231,6 @@ async function submit(){
     else if(ns === 0){
       turn = "p1";
     }
-
     else{
       score2 = ns;
       turn = "p1";
@@ -255,12 +245,16 @@ async function submit(){
 
 
 // ==========================
-// RELOAD MATCH
+// MATCH RELOAD
 // ==========================
 async function reloadMatch(id){
-  matches = await getList("Matches");
+  await refreshMatches();
   currentMatch = matches.find(m => m.id === id);
   updateUI();
+}
+
+async function refreshMatches(){
+  matches = await getList("Matches");
 }
 
 
@@ -284,64 +278,79 @@ async function updateMatch(id, s1, s2, turn, legs1, legs2, winner){
 
   const status = winner ? "finished" : "active";
 
-await fetch(
-  `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${id}/fields`,
-{
-  method:"PATCH",
-  headers:{
-    Authorization:`Bearer ${token}`,
-    "Content-Type":"application/json"
-  },
-  body:JSON.stringify({
-    Score1: s1,
-    Score2: s2,
-    Turn: turn,
-    Legs1: legs1,
-    Legs2: legs2,
-    Winner: winner || "",
-    Status: status
-  })
-});
-
-  // ✅ NUR BEI MATCH ENDE
-
-if(winner){
-  await advanceWinner(currentMatch); // ✅ NEU
-  await activateNextMatch(currentMatch.fields.BoardId);
-}
-
-}
-
-
-// ==========================
-// AUTO NEXT MATCH
-// ==========================
-async function activateNextMatch(boardId){
-
-  const token = await getToken();
-  const matches = await getList("Matches");
-
-  const next = matches.find(m =>
-    m.fields &&
-    m.fields.BoardId == boardId &&
-    m.fields.Status === "waiting"
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${id}/fields`,
+    {
+      method:"PATCH",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        Score1: s1,
+        Score2: s2,
+        Turn: turn,
+        Legs1: legs1,
+        Legs2: legs2,
+        Winner: winner || "",
+        Status: status
+      })
+    }
   );
 
-  if(!next) return;
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${next.id}/fields`,
-  {
-    method:"PATCH",
-    headers:{
-      Authorization:`Bearer ${token}`,
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({
-      Status: "active"
-    })
-  });
+  if(winner){
+    await advanceWinner(currentMatch);
+    await activateNextMatches(); // ✅ MULTI BOARD FIX
+  }
 }
+
+
+// ==========================
+// ✅ NEU: MEHRERE BOARDS
+// ==========================
+async function activateNextMatches(){
+
+  const matches = await getList("Matches");
+
+  const boardCount = parseInt(localStorage.getItem("boardCount")) || 1;
+
+  const active = matches.filter(m =>
+    m.fields.Status === "active"
+  );
+
+  const waiting = matches.filter(m =>
+    m.fields.Status === "waiting" &&
+    m.fields.Player1 && m.fields.Player2
+  );
+
+  const freeSlots = boardCount - active.length;
+
+  if(freeSlots <= 0) return;
+
+  const token = await getToken();
+
+  for(let i=0; i<freeSlots && i<waiting.length; i++){
+
+    await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${waiting[i].id}/fields`,
+      {
+        method:"PATCH",
+        headers:{
+          Authorization:`Bearer ${token}`,
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          Status:"active"
+        })
+      }
+    );
+  }
+}
+
+
+// ==========================
+// KO WEITERGABE
+// ==========================
 async function advanceWinner(match){
 
   const token = await getToken();
@@ -359,13 +368,13 @@ async function advanceWinner(match){
 
   await fetch(
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${f.NextMatchId}/fields`,
-  {
-    method:"PATCH",
-    headers:{
-      Authorization:`Bearer ${token}`,
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify(body)
-  });
+    {
+      method:"PATCH",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify(body)
+    }
+  );
 }
-
