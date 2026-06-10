@@ -3,86 +3,48 @@
 <head>
 
 <meta charset="UTF-8">
-<title>Punkte Eingabe</title>
+<title>Darts Input</title>
 
 <script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/graph.js"></script>
-
-<!-- ✅ WICHTIG: KEIN admin.js -->
 <script src="js/input.js"></script>
 
 <style>
-body{
-  background:#000;
-  color:#fff;
-  font-family:Arial;
-  text-align:center;
-}
+body{ background:#000; color:white; text-align:center; font-family:Arial; }
 
-select, input{
-  font-size:20px;
-  padding:10px;
-  margin:5px;
-}
-
-button{
-  font-size:18px;
-  padding:8px;
-  margin:5px;
-  background:red;
-  color:white;
-  border:none;
-  border-radius:5px;
-}
-
-#players{
-  margin:20px;
-  font-size:24px;
-}
-
-.score{
-  font-size:50px;
-  margin:20px;
-}
-
-.turn{
-  color:yellow;
-}
-
-#buttons{
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:center;
-  margin-top:20px;
-}
+#buttons{ display:flex; flex-wrap:wrap; justify-content:center; }
 
 .btn{
-  width:65px;
-  height:45px;
+  width:60px;
+  height:40px;
   margin:3px;
   background:#222;
   border:1px solid red;
+  color:white;
 }
 
-.btn:hover{
-  background:red;
-}
 </style>
-
 </head>
 
 <body>
 
-<h1>🎯 Punkte Eingabe</h1>
+<h1>🎯 Eingabe</h1>
+
+<!-- ✅ MODE SWITCH -->
+<select id="modeSelect">
+  <option value="tournament">Turnier</option>
+  <option value="training">Training</option>
+</select>
+
+<br><br>
 
 <select id="boardSelect"></select>
 
-<div id="players"></div>
-
-<div class="score" id="score"></div>
+<h2 id="players"></h2>
+<h1 id="score"></h1>
 <div id="legs"></div>
-<div class="turn" id="turn"></div>
+<div id="turn"></div>
 
 <br>
 
@@ -91,12 +53,10 @@ button{
 <input id="d3">
 
 <h3>Darts</h3>
-
 <div id="buttons"></div>
 
 <br>
-
-<button onclick="submit()">Speichern</button>
+<button onclick="submit()">Save</button>
 
 </body>
 </html>
