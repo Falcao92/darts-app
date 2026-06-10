@@ -275,9 +275,15 @@ async function updateMatch(id, s1, s2, turn, legs1, legs2, winner){
     }
   );
 
-  if(winner){
-    await checkAndStartKO();
-  }
+if(winner){
+
+  // ✅ warten bis SharePoint fertig
+  await refreshMatches();
+
+  // ✅ dann prüfen
+  await checkAndStartKO();
+}
+
 }
 
 
@@ -311,26 +317,40 @@ function resetInputs(){
 // ==========================
 async function checkAndStartKO(){
 
-  const matches = await getList("Matches");
+  await refreshMatches(); // ✅ sicher aktualisiert
 
   const groupMatches = matches.filter(m =>
-    m.fields.Round === "group"
+    m.fields && m.fields.Round === "group"
   );
 
+  // ❗ falls keine Gruppenphase
+  if(groupMatches.length === 0) return;
+
+  // ✅ alle fertig?
   const stillOpen = groupMatches.some(m =>
     m.fields.Status !== "finished"
   );
 
-  if(stillOpen) return;
+  if(stillOpen){
+    console.log("⏳ Gruppen noch nicht fertig");
+    return;
+  }
 
+  // ✅ KO schon da?
   const hasKO = matches.some(m =>
     m.fields.Round !== "group"
   );
 
-  if(hasKO) return;
+  if(hasKO){
+    console.log("✅ KO existiert bereits");
+    return;
+  }
+
+  console.log("🔥 STARTE KO PHASE");
 
   await createKOFromFinishedGroups(matches);
 }
+
 
 
 async function createKOFromFinishedGroups(matches){
