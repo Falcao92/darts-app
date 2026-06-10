@@ -343,21 +343,23 @@ async function createNextRounds(firstRound, boardCount){
   let board = 1;
   let ids = [];
 
-let firstMatch = true;
+  // ✅ WICHTIG: mehrere aktive Matches
+  let activeSlots = boardCount;
 
-for(const m of current){
+  for(let i = 0; i < current.length; i++){
 
-  const id = await createMatchReturnId(
-    m.Player1,
-    m.Player2,
-    board,
-    "",
-    m.Round,
-    firstMatch ? "active" : "waiting"
-  );
+    const m = current[i];
 
-  firstMatch = false;
+    const status = i < activeSlots ? "active" : "waiting";
 
+    const id = await createMatchReturnId(
+      m.Player1,
+      m.Player2,
+      board,
+      "",
+      m.Round,
+      status
+    );
 
     ids.push(id);
 
@@ -365,13 +367,16 @@ for(const m of current){
     if(board > boardCount) board = 1;
   }
 
+  // ==========================
+  // KO TREE
+  // ==========================
   while(ids.length > 1){
 
     let nextIds = [];
 
     for(let i=0;i<ids.length;i+=2){
 
-      if(!ids[i+1]) break; // ✅ Sicherheitsfix
+      if(!ids[i+1]) break;
 
       const id = await createMatchReturnId(
         "",
