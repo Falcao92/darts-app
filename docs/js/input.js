@@ -141,7 +141,7 @@ function insertDart(value){
 
 
 // ==========================
-// SUBMIT
+// SUBMIT (FIXED)
 // ==========================
 async function submit(){
 
@@ -162,7 +162,9 @@ async function submit(){
   let turn = f.Turn;
 
   const lastDart = d3.value || d2.value || d1.value;
-  const legsToWin = f.LegsToWin || 3;
+
+  // ✅ FIX
+  const legsToWin = parseInt(f.LegsToWin) || 3;
 
 
   // PLAYER 1
@@ -178,7 +180,7 @@ async function submit(){
 
       legs1++;
 
-      if(legs1 >= legsToWin){
+      if(Number(legs1) >= legsToWin){
 
         await updateMatch(id, 501, 501, "p2", legs1, legs2, f.Player1);
 
@@ -214,7 +216,7 @@ async function submit(){
 
       legs2++;
 
-      if(legs2 >= legsToWin){
+      if(Number(legs2) >= legsToWin){
 
         await updateMatch(id, 501, 501, "p1", legs1, legs2, f.Player2);
 
@@ -241,31 +243,6 @@ async function submit(){
 
   resetInputs();
   await reloadMatch(id);
-}
-
-
-// ==========================
-// MATCH RELOAD
-// ==========================
-async function reloadMatch(id){
-  await refreshMatches();
-  currentMatch = matches.find(m => m.id === id);
-  updateUI();
-}
-
-async function refreshMatches(){
-  matches = await getList("Matches");
-}
-
-
-// ==========================
-// RESET INPUTS
-// ==========================
-function resetInputs(){
-  d1.value = "";
-  d2.value = "";
-  d3.value = "";
-  currentInput = 1;
 }
 
 
@@ -299,111 +276,58 @@ async function updateMatch(id, s1, s2, turn, legs1, legs2, winner){
   );
 
   if(winner){
-    await advanceWinner(currentMatch);
-    await activateNextMatches(); // ✅ MULTI BOARD FIX
-     await checkAndStartKO()
+    await checkAndStartKO();
   }
 }
 
 
 // ==========================
-// ✅ NEU: MEHRERE BOARDS
+// MATCH REFRESH
 // ==========================
-async function activateNextMatches(){
+async function reloadMatch(id){
+  await refreshMatches();
+  currentMatch = matches.find(m => m.id === id);
+  updateUI();
+}
 
-  const matches = await getList("Matches");
-
-  const boardCount = parseInt(localStorage.getItem("boardCount")) || 1;
-
-  const active = matches.filter(m =>
-    m.fields.Status === "active"
-  );
-
-  const waiting = matches.filter(m =>
-    m.fields.Status === "waiting" &&
-    m.fields.Player1 && m.fields.Player2
-  );
-
-  const freeSlots = boardCount - active.length;
-
-  if(freeSlots <= 0) return;
-
-  const token = await getToken();
-
-  for(let i=0; i<freeSlots && i<waiting.length; i++){
-
-    await fetch(
-      `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${waiting[i].id}/fields`,
-      {
-        method:"PATCH",
-        headers:{
-          Authorization:`Bearer ${token}`,
-          "Content-Type":"application/json"
-        },
-        body:JSON.stringify({
-          Status:"active"
-        })
-      }
-    );
-  }
+async function refreshMatches(){
+  matches = await getList("Matches");
 }
 
 
 // ==========================
-// KO WEITERGABE
+// RESET INPUTS
 // ==========================
-async function advanceWinner(match){
-
-  const token = await getToken();
-  const f = match.fields;
-
-  if(!f.NextMatchId) return;
-
-  let body = {};
-
-  if(f.NextSlot === "p2"){
-    body.Player2 = f.Winner;
-  } else {
-    body.Player1 = f.Winner;
-  }
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${f.NextMatchId}/fields`,
-    {
-      method:"PATCH",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify(body)
-    }
-  );
+function resetInputs(){
+  d1.value = "";
+  d2.value = "";
+  d3.value = "";
+  currentInput = 1;
 }
 
+
+// ==========================
+// ✅ KO AUTO START (FIXED)
+// ==========================
 async function checkAndStartKO(){
 
   const matches = await getList("Matches");
 
-  // ✅ alle Gruppenspiele
   const groupMatches = matches.filter(m =>
     m.fields.Round === "group"
   );
 
-  // ✅ noch offene Gruppenspiele?
   const stillOpen = groupMatches.some(m =>
     m.fields.Status !== "finished"
   );
 
-  if(stillOpen) return; // ❌ noch nicht fertig
+  if(stillOpen) return;
 
-  // ✅ KO existiert schon?
   const hasKO = matches.some(m =>
     m.fields.Round !== "group"
   );
 
-  if(hasKO) return; // ❌ schon gestartet
-
-  console.log("🔥 Gruppen fertig → starte KO");
+  if(hasKO) return;
 
   await createKOFromFinishedGroups(matches);
 }
@@ -419,17 +343,10 @@ async function createKOFromFinishedGroups(matches){
 
     if(f.Round !== "group") return;
 
-    if(!groups[f.Group]){
-      groups[f.Group] = {};
-    }
+    if(!groups[f.Group]) groups[f.Group] = {};
 
-    if(!groups[f.Group][f.Player1]){
-      groups[f.Group][f.Player1] = 0;
-    }
-
-    if(!groups[f.Group][f.Player2]){
-      groups[f.Group][f.Player2] = 0;
-    }
+    if(!groups[f.Group][f.Player1]) groups[f.Group][f.Player1] = 0;
+    if(!groups[f.Group][f.Player2]) groups[f.Group][f.Player2] = 0;
 
     if(f.Winner){
       groups[f.Group][f.Winner] += 2;
@@ -445,14 +362,10 @@ async function createKOFromFinishedGroups(matches){
 
     qualified.push(sorted[0][0]);
 
-    if(sorted[1]){
-      qualified.push(sorted[1][0]);
-    }
+    if(sorted[1]) qualified.push(sorted[1][0]);
   });
 
   const boardCount = parseInt(localStorage.getItem("boardCount")) || 1;
-
-  console.log("✅ KO Spieler:", qualified);
 
   await createKOBracket(qualified, boardCount);
 }
