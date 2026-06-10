@@ -44,6 +44,58 @@ async function loadPlayers(){
     p2.innerHTML += `<option>${name}</option>`;
   });
 }
+// ==========================
+// Spielplan
+// ==========================
+
+async function showSchedule(){
+
+  const matches = await getList("Matches");
+
+  const div = document.getElementById("groupsView");
+
+  let html = "<h3>Spielplan</h3>";
+
+  // ✅ Gruppenspiele sortieren
+  const groupMatches = matches.filter(m =>
+    m.fields &&
+    m.fields.Round === "group"
+  );
+
+  if(groupMatches.length === 0){
+    div.innerHTML = "<p>Keine Spiele erstellt</p>";
+    return;
+  }
+
+  // 👉 sortieren nach Gruppe + Board
+  groupMatches.sort((a,b)=>{
+    if(a.fields.Group === b.fields.Group){
+      return a.fields.BoardId - b.fields.BoardId;
+    }
+    return a.fields.Group.localeCompare(b.fields.Group);
+  });
+
+  let currentGroup = "";
+
+  groupMatches.forEach(m => {
+
+    const f = m.fields;
+
+    // ✅ neue Gruppe beginnen
+    if(f.Group !== currentGroup){
+      currentGroup = f.Group;
+      html += `<br><b>Gruppe ${currentGroup}</b><br>`;
+    }
+
+    html += `
+      Board ${f.BoardId}: 
+      ${f.Player1} vs ${f.Player2}
+      <br>
+    `;
+  });
+
+  div.innerHTML = html;
+}
 
 
 // ==========================
