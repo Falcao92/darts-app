@@ -347,11 +347,20 @@ async function fillBoards(){
 
 
 // ==========================
+
 async function reload(){
+
+  const currentBoard = document.getElementById("boardSelect").value;
+
   await refreshMatches();
   buildBoardSelect();
+
+  // ✅ Auswahl wieder setzen
+  document.getElementById("boardSelect").value = currentBoard;
+
   loadMatch();
 }
+
 
 function reset(){
   d1.value="";
