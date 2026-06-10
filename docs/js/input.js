@@ -1,6 +1,6 @@
 let matches = [];
 let currentMatch = null;
-let currentInput = 1;   // ✅ merkt welcher Dart gerade gewählt wird (1–3)
+let currentInput = 1;
 
 window.addEventListener("DOMContentLoaded", async () => {
 
@@ -9,7 +9,18 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   matches = await getList("Matches");
 
-  const boards = [...new Set(matches.map(m => m.fields.BoardId))];
+  // ✅ NUR Boards mit aktiven Matches
+  const boards = [
+    ...new Set(
+      matches
+        .filter(m =>
+          m.fields &&
+          m.fields.Status === "active" &&
+          m.fields.BoardId
+        )
+        .map(m => m.fields.BoardId)
+    )
+  ];
 
   const sel = document.getElementById("boardSelect");
   sel.innerHTML = "";
@@ -20,21 +31,33 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   sel.addEventListener("change", loadMatch);
 
-  createButtons();   // 🔥 Buttons erzeugen
+  createButtons();
 
   loadMatch();
 });
 
 
-// ✅ Match laden
+// ✅ MATCH LADEN (MIT STATUS FILTER)
 function loadMatch(){
 
   const board = document.getElementById("boardSelect").value;
 
-  currentMatch = matches.find(m => m.fields.BoardId == board);
+  const activeMatches = matches.filter(m =>
+    m.fields &&
+    m.fields.BoardId == board &&
+    m.fields.Status === "active" &&
+    m.fields.Player1 &&
+    m.fields.Player2
+  );
+
+  currentMatch = activeMatches[0];
 
   if(!currentMatch){
-    document.getElementById("players").innerHTML = "Kein Spiel";
+    set("players", "Kein aktives Spiel");
+    set("score", "");
+    set("turn", "");
+    set("checkout", "");
+    set("legs", "");
     return;
   }
 
@@ -47,26 +70,25 @@ function updateUI(){
 
   const f = currentMatch.fields;
 
-  document.getElementById("players").innerHTML =
-    `${f.Player1} vs ${f.Player2}`;
-
-  document.getElementById("score").innerHTML =
-    `${f.Score1} : ${f.Score2}`;
-
-  document.getElementById("turn").innerHTML =
-    "👉 " + (f.Turn === "p1" ? f.Player1 : f.Player2);
-
-  document.getElementById("legs").innerHTML =
-    `Legs: ${f.Legs1 || 0} : ${f.Legs2 || 0}`;
+  set("players", `${f.Player1} vs ${f.Player2}`);
+  set("score", `${f.Score1} : ${f.Score2}`);
+  set("turn", "👉 " + (f.Turn === "p1" ? f.Player1 : f.Player2));
+  set("legs", `Legs: ${f.Legs1 || 0} : ${f.Legs2 || 0}`);
 
   const score = f.Turn === "p1" ? f.Score1 : f.Score2;
 
-  document.getElementById("checkout").innerHTML =
-    getCheckout(score);
+  set("checkout", getCheckout(score));
 }
 
 
-// ✅ Dart Parsing (robust)
+// ✅ Safe Setter
+function set(id, val){
+  const el = document.getElementById(id);
+  if(el) el.innerHTML = val;
+}
+
+
+// ✅ Dart Parsing
 function parse(v){
 
   if(!v) return 0;
@@ -83,7 +105,7 @@ function parse(v){
 }
 
 
-// ✅ Klick-Buttons erstellen
+// ✅ Buttons erstellen
 function createButtons(){
 
   const div = document.getElementById("buttons");
@@ -100,7 +122,6 @@ function createButtons(){
 }
 
 
-// ✅ Button hinzufügen
 function addButton(label, value){
 
   const btn = document.createElement("button");
@@ -114,7 +135,7 @@ function addButton(label, value){
 }
 
 
-// ✅ Dart setzen (Flow 1→2→3)
+// ✅ Dart setzen
 function insertDart(value){
 
   if(currentInput === 1){
@@ -147,25 +168,20 @@ async function submit(){
 
   let score1 = f.Score1;
   let score2 = f.Score2;
-
   let legs1 = f.Legs1 || 0;
   let legs2 = f.Legs2 || 0;
-
   let legsToWin = f.LegsToWin || 3;
-
   let turn = f.Turn;
 
 
-  // 🎯 PLAYER 1
   if(turn === "p1"){
 
-    let newScore = score1 - total;
+    let ns = score1 - total;
 
-    if(newScore < 0 || newScore === 1){
-      turn = "p2";
+    if(ns < 0 || ns === 1){
+      turn = "p2"; // Bust
     }
-
-    else if(newScore === 0){
+    else if(ns === 0){
 
       legs1++;
 
@@ -177,24 +193,20 @@ async function submit(){
       resetInputs();
       return;
     }
-
     else{
-      score1 = newScore;
+      score1 = ns;
       turn = "p2";
     }
   }
 
-
-  // 🎯 PLAYER 2
   else{
 
-    let newScore = score2 - total;
+    let ns = score2 - total;
 
-    if(newScore < 0 || newScore === 1){
+    if(ns < 0 || ns === 1){
       turn = "p1";
     }
-
-    else if(newScore === 0){
+    else if(ns === 0){
 
       legs2++;
 
@@ -206,26 +218,28 @@ async function submit(){
       resetInputs();
       return;
     }
-
     else{
-      score2 = newScore;
+      score2 = ns;
       turn = "p1";
     }
   }
-
 
   await updateMatch(id, score1, score2, turn, legs1, legs2);
 
   resetInputs();
 
   matches = await getList("Matches");
-  currentMatch = matches.find(m => m.id === id);
+
+  currentMatch = matches.find(m =>
+    m.id === id &&
+    m.fields.Status === "active"
+  );
 
   updateUI();
 }
 
 
-// ✅ Inputs zurücksetzen
+// ✅ Reset
 function resetInputs(){
   d1.value = "";
   d2.value = "";
@@ -234,7 +248,7 @@ function resetInputs(){
 }
 
 
-// ✅ Update SharePoint
+// ✅ Update
 async function updateMatch(id, s1, s2, turn, legs1, legs2){
 
   const token = await getToken();
@@ -258,7 +272,7 @@ async function updateMatch(id, s1, s2, turn, legs1, legs2){
 }
 
 
-// ✅ Checkout Tabelle
+// ✅ Checkout
 function getCheckout(score){
 
   const map = {
