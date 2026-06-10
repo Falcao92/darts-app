@@ -14,35 +14,62 @@ body{
   background:#000;
   color:white;
   font-family:Arial;
-  text-align:center;
+  margin:0;
+  padding:0;
 }
 
 h1{
+  text-align:center;
   color:red;
+  margin:10px;
 }
 
-.section{
-  margin:20px;
-}
-
-.match{
-  border:1px solid #333;
-  margin:5px;
+/* 📺 BOARD GRID */
+#boards{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px,1fr));
+  gap:10px;
   padding:10px;
-  border-radius:8px;
 }
 
+/* 📦 BOARD KACHEL */
 .board{
-  color:yellow;
-  font-weight:bold;
+  background:#111;
+  padding:10px;
+  border:2px solid red;
+  border-radius:10px;
 }
 
+.title{
+  font-weight:bold;
+  margin-bottom:5px;
+}
+
+/* LIVE */
 .live{
   color:#00ff00;
 }
 
-.finished{
-  color:#888;
+/* NEXT */
+.next{
+  color:#ffaa00;
+  font-size:14px;
+}
+
+/* Gruppen kompakt */
+#groups{
+  padding:10px;
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px,1fr));
+  gap:10px;
+}
+
+.group{
+  background:#111;
+  padding:8px;
+  border:1px solid #333;
+  border-radius:6px;
+  font-size:14px;
 }
 
 </style>
@@ -53,11 +80,10 @@ h1{
 
 <h1>🎯 Turnier Übersicht</h1>
 
-<div id="boards" class="section"></div>
+<div id="boards"></div>
 
-<div id="groups" class="section"></div>
-
-<div id="ko" class="section"></div>
+<h2 style="text-align:center">Gruppen</h2>
+<div id="groups"></div>
 
 </body>
 </html>
