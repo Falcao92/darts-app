@@ -5,6 +5,7 @@
 <meta charset="UTF-8">
 <title>Turnier Übersicht</title>
 
+<!-- ✅ Scripts korrekt -->
 <script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/graph.js"></script>
@@ -18,6 +19,9 @@ body{
   margin:0;
 }
 
+/* =========================
+   HEADER
+========================= */
 h1{
   text-align:center;
   color:red;
@@ -26,10 +30,11 @@ h1{
 
 h2{
   text-align:center;
+  margin:5px;
 }
 
 /* =========================
-   📺 BOARDS
+   📺 BOARDS GRID
 ========================= */
 #boards{
   display:grid;
@@ -38,6 +43,7 @@ h2{
   padding:10px;
 }
 
+/* BOARD CARD */
 .board{
   background:#111;
   border:2px solid red;
@@ -45,73 +51,71 @@ h2{
   padding:10px;
 }
 
+/* TITLE */
 .title{
   font-size:18px;
   font-weight:bold;
-  margin-bottom:5px;
+  margin-bottom:4px;
 }
 
+/* CURRENT MATCH */
 .live{
   color:#00ff00;
   font-size:16px;
 }
 
+/* NEXT MATCH */
 .next{
-  margin-top:8px;
+  margin-top:6px;
   color:#ffaa00;
   font-size:14px;
 }
 
 /* =========================
-   🧩 GRUPPEN TABLE
+   🧩 GROUP TABLES
 ========================= */
-
 #groups{
   padding:10px;
   display:grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px,1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px,1fr));
   gap:10px;
 }
 
+/* GROUP BOX */
 .group{
   background:#111;
-  padding:10px;
+  padding:8px;
   border:1px solid #333;
   border-radius:6px;
 }
 
-/* ✅ TABLE STYLE */
+/* TABLE */
 table{
   width:100%;
   border-collapse:collapse;
-  margin-top:5px;
   font-size:13px;
+}
+
+th, td{
+  padding:4px;
+  text-align:center;
+  border-bottom:1px solid #333;
 }
 
 th{
   color:#aaa;
-  border-bottom:1px solid #444;
-  padding:4px;
 }
 
-td{
-  border-bottom:1px solid #222;
-  padding:4px;
-  text-align:center;
-}
-
-/* ✅ Platz 1 Highlight */
-tr:first-child td{
+/* 🥇 Platz 1 */
+tr:nth-child(2){
   color:#00ff00;
   font-weight:bold;
 }
 
-/* kompakt */
-.small{
-  font-size:12px;
-  color:#888;
+/* 🥈 Platz 2 */
+tr:nth-child(3){
+  color:#ffaa00;
 }
-
 </style>
 
 </head>
@@ -123,9 +127,9 @@ tr:first-child td{
 <!-- 📺 BOARDS -->
 <div id="boards"></div>
 
-<h2>🧩 Gruppenphase</h2>
+<h2>🧩 Gruppentabelle</h2>
 
-<!-- 🧩 TABELLEN -->
+<!-- 🧩 TABLE -->
 <div id="groups"></div>
 
 </body>
