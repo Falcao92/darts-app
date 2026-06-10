@@ -89,31 +89,85 @@ function renderGroups(matches){
 
   let groups = {};
 
+  // ✅ Tabellenstruktur bauen
   matches.forEach(m => {
 
     const f = m.fields;
 
-    // ✅ NUR Gruppenspiele
+    // 👉 nur Gruppenspiele
     if(!f.Group || f.Round !== "group") return;
 
     if(!groups[f.Group]){
-      groups[f.Group] = new Set();
+      groups[f.Group] = {};
     }
 
-    groups[f.Group].add(f.Player1);
-    groups[f.Group].add(f.Player2);
+    // Spieler initialisieren
+    if(!groups[f.Group][f.Player1]){
+      groups[f.Group][f.Player1] = {
+        name: f.Player1,
+        played: 0,
+        wins: 0,
+        points: 0
+      };
+    }
+
+    if(!groups[f.Group][f.Player2]){
+      groups[f.Group][f.Player2] = {
+        name: f.Player2,
+        played: 0,
+        wins: 0,
+        points: 0
+      };
+    }
+
+    // ✅ nur fertige Spiele zählen
+    if(f.Status === "finished"){
+
+      groups[f.Group][f.Player1].played++;
+      groups[f.Group][f.Player2].played++;
+
+      if(f.Winner){
+        groups[f.Group][f.Winner].wins++;
+        groups[f.Group][f.Winner].points += 2;
+      }
+    }
   });
 
+
+  // ✅ HTML bauen
   let html = "";
 
-  Object.keys(groups).sort().forEach(g => {
+  Object.keys(groups).sort().forEach(group => {
+
+    let players = Object.values(groups[group]);
+
+    // ✅ sortieren nach Punkten
+    players.sort((a,b) => b.points - a.points);
 
     html += `
       <div class="group">
-        <b>Gruppe ${g}</b><br>
-        ${[...groups[g]].join("<br>")}
-      </div>
+        <b>Gruppe ${group}</b>
+        <table style="width:100%; margin-top:5px;">
+          <tr>
+            <th>Name</th>
+            <th>S</th>
+            <th>W</th>
+            <th>P</th>
+          </tr>
     `;
+
+    players.forEach(p => {
+      html += `
+        <tr>
+          <td>${p.name}</td>
+          <td>${p.played}</td>
+          <td>${p.wins}</td>
+          <td>${p.points}</td>
+        </tr>
+      `;
+    });
+
+    html += "</table></div>";
   });
 
   div.innerHTML = html;
