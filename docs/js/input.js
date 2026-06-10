@@ -301,6 +301,7 @@ async function updateMatch(id, s1, s2, turn, legs1, legs2, winner){
   if(winner){
     await advanceWinner(currentMatch);
     await activateNextMatches(); // ✅ MULTI BOARD FIX
+     await checkAndStartKO()
   }
 }
 
@@ -377,4 +378,81 @@ async function advanceWinner(match){
       body:JSON.stringify(body)
     }
   );
+}
+
+async function checkAndStartKO(){
+
+  const matches = await getList("Matches");
+
+  // ✅ alle Gruppenspiele
+  const groupMatches = matches.filter(m =>
+    m.fields.Round === "group"
+  );
+
+  // ✅ noch offene Gruppenspiele?
+  const stillOpen = groupMatches.some(m =>
+    m.fields.Status !== "finished"
+  );
+
+  if(stillOpen) return; // ❌ noch nicht fertig
+
+  // ✅ KO existiert schon?
+  const hasKO = matches.some(m =>
+    m.fields.Round !== "group"
+  );
+
+  if(hasKO) return; // ❌ schon gestartet
+
+  console.log("🔥 Gruppen fertig → starte KO");
+
+  await createKOFromFinishedGroups(matches);
+}
+
+
+async function createKOFromFinishedGroups(matches){
+
+  let groups = {};
+
+  matches.forEach(m => {
+
+    const f = m.fields;
+
+    if(f.Round !== "group") return;
+
+    if(!groups[f.Group]){
+      groups[f.Group] = {};
+    }
+
+    if(!groups[f.Group][f.Player1]){
+      groups[f.Group][f.Player1] = 0;
+    }
+
+    if(!groups[f.Group][f.Player2]){
+      groups[f.Group][f.Player2] = 0;
+    }
+
+    if(f.Winner){
+      groups[f.Group][f.Winner] += 2;
+    }
+  });
+
+  let qualified = [];
+
+  Object.values(groups).forEach(group => {
+
+    const sorted = Object.entries(group)
+      .sort((a,b)=>b[1]-a[1]);
+
+    qualified.push(sorted[0][0]);
+
+    if(sorted[1]){
+      qualified.push(sorted[1][0]);
+    }
+  });
+
+  const boardCount = parseInt(localStorage.getItem("boardCount")) || 1;
+
+  console.log("✅ KO Spieler:", qualified);
+
+  await createKOBracket(qualified, boardCount);
 }
