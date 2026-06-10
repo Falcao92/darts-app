@@ -1,8 +1,7 @@
 let matches = [];
 let currentMatch = null;
+let mode = "tournament";
 
-
-// ==========================
 window.addEventListener("DOMContentLoaded", init);
 
 
@@ -12,6 +11,17 @@ async function init(){
   const ok = await ensureLogin();
   if (!ok) return;
 
+  // ✅ MODE SWITCH
+  const modeSelect = document.getElementById("modeSelect");
+  if(modeSelect){
+    modeSelect.onchange = async (e)=>{
+      mode = e.target.value;
+      await refreshMatches();
+      buildBoardSelect();
+      loadMatch();
+    };
+  }
+
   await refreshMatches();
   buildBoardSelect();
   createButtons();
@@ -20,8 +30,14 @@ async function init(){
 
 
 // ==========================
+function getListName(){
+  return mode === "training" ? "TrainingMatches" : "Matches";
+}
+
+
+// ==========================
 async function refreshMatches(){
-  matches = await getList("Matches") || [];
+  matches = await getList(getListName()) || [];
 }
 
 
@@ -29,9 +45,11 @@ async function refreshMatches(){
 function buildBoardSelect(){
 
   const sel = document.getElementById("boardSelect");
+  if(!sel) return;
+
   sel.innerHTML = "";
 
-  const boards = [...new Set(matches.map(m => m.fields.BoardId))];
+  const boards = [...new Set(matches.map(m => m.fields?.BoardId))];
 
   boards.forEach(b=>{
     sel.innerHTML += `<option value="${b}">Board ${b}</option>`;
@@ -44,7 +62,10 @@ function buildBoardSelect(){
 // ==========================
 function loadMatch(){
 
-  const board = document.getElementById("boardSelect").value;
+  const sel = document.getElementById("boardSelect");
+  if(!sel) return;
+
+  const board = sel.value;
 
   currentMatch = matches.find(m =>
     m.fields &&
@@ -169,15 +190,12 @@ async function submit(){
 
     if(ns===0 && isDouble(last)){
       l1++;
-
       if(l1>=target){
         await finishMatch(f.Player1,l1,l2);
         return;
       }
-
       await update(501,501,"p2",l1,l2);
-    }
-    else{
+    } else {
       if(ns>1) s1=ns;
       turn="p2";
       await update(s1,s2,turn,l1,l2);
@@ -189,15 +207,12 @@ async function submit(){
 
     if(ns===0 && isDouble(last)){
       l2++;
-
       if(l2>=target){
         await finishMatch(f.Player2,l1,l2);
         return;
       }
-
       await update(501,501,"p1",l1,l2);
-    }
-    else{
+    } else {
       if(ns>1) s2=ns;
       turn="p1";
       await update(s1,s2,turn,l1,l2);
@@ -215,7 +230,7 @@ async function update(s1,s2,turn,l1,l2){
   const token=await getToken();
 
   await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${currentMatch.id}/fields`,
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/${getListName()}/items/${currentMatch.id}/fields`,
     {
       method:"PATCH",
       headers:{
@@ -241,7 +256,7 @@ async function finishMatch(winner,l1,l2){
   const f=currentMatch.fields;
 
   await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${currentMatch.id}/fields`,
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/${getListName()}/items/${currentMatch.id}/fields`,
     {
       method:"PATCH",
       headers:{
@@ -257,13 +272,12 @@ async function finishMatch(winner,l1,l2){
     }
   );
 
-  // ✅ WICHTIG: warten + neu laden
-  await refreshMatches();
+  // ✅ nur Turnier beeinflusst KO
+  if(mode === "tournament"){
+    await handleKORound(f, winner);
+    await autoProgress();
+  }
 
-  // ✅ DANN Logik starten
-  await autoProgress();
-
-  // ✅ UI zuletzt
   await reload();
 }
 
@@ -297,37 +311,33 @@ async function handleSemiFinals(){
 
   if(finished.length !== 2) return;
 
+  const existingFinal = matches.some(m => m.fields.Round === "final");
+  if(existingFinal) return;
+
   let winners = [];
   let losers = [];
 
   finished.forEach(m => {
+
     const f = m.fields;
 
     winners.push(f.Winner);
 
-    const loser = (f.Player1 === f.Winner)
-      ? f.Player2
-      : f.Player1;
+    const loser = (f.Player1 === f.Winner) ? f.Player2 : f.Player1;
 
     losers.push(loser);
   });
 
-  await createFinalAndThird(winners, losers);
-}
-
-
-// ==========================
-async function createFinalAndThird(finalists, losers){
-
   const token = await getToken();
 
-  await create(finalists[0], finalists[1], "final", 1, token);
+  // Finale
+  await create(winners[0], winners[1], "final", 1, token);
+
+  // Platz 3
   await create(losers[0], losers[1], "third", 2, token);
 }
 
 
-// ==========================
-// ✅ FIXED AUTO PROGRESS
 // ==========================
 async function autoProgress(){
 
@@ -339,23 +349,16 @@ async function autoProgress(){
 
   if(group.length === 0) return;
 
-  const allFinished = group.every(m =>
+  const ready = group.every(m =>
     m.fields.Status === "finished"
   );
 
-  console.log("GROUP STATUS:", group.map(g => g.fields.Status));
-
-  if(allFinished){
-
-    console.log("🔥 STARTE KO");
-
+  if(ready){
     await startKO();
-
     return;
   }
-
-  await fillBoards();
 }
+
 
 // ==========================
 async function startKO(){
@@ -367,7 +370,6 @@ async function startKO(){
 
   let groups = {};
 
-  // ✅ Spieler pro Gruppe sammeln
   matches
     .filter(m => m.fields.Round === "group")
     .forEach(m => {
@@ -386,25 +388,19 @@ async function startKO(){
 
   let players = [];
 
-  // ✅ Top 2 pro Gruppe holen
   Object.values(groups).forEach(group => {
 
     const sorted = Object.entries(group)
       .sort((a,b) => b[1] - a[1]);
 
-    players.push(sorted[0][0]); // Platz 1
-    if(sorted[1]) players.push(sorted[1][0]); // Platz 2
+    players.push(sorted[0][0]);
+    if(sorted[1]) players.push(sorted[1][0]);
   });
 
-  console.log("✅ KO Spieler:", players);
+  if(players.length < 4) return;
 
-  if(players.length < 2) return;
-
-  // ✅ Halbfinale
   await create(players[0], players[1], "semi", 1);
   await create(players[2], players[3], "semi", 2);
-
-  console.log("🔥 KO erstellt");
 }
 
 
@@ -443,40 +439,18 @@ async function create(p1,p2,round,board,token=null){
 
 
 // ==========================
-async function fillBoards(){
-
-  await refreshMatches();
-
-  const waiting = matches.filter(m=>m.fields.Status==="waiting");
-
-  if(waiting.length===0) return;
-
-  const token=await getToken();
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${waiting[0].id}/fields`,
-    {
-      method:"PATCH",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({Status:"active"})
-    }
-  );
-}
-
-
-// ==========================
 async function reload(){
 
-  const currentBoard = document.getElementById("boardSelect").value;
+  const sel = document.getElementById("boardSelect");
+  if(!sel) return;
+
+  const currentBoard = sel.value;
 
   await refreshMatches();
   buildBoardSelect();
 
-  if([...document.getElementById("boardSelect").options].some(o => o.value === currentBoard)){
-    document.getElementById("boardSelect").value = currentBoard;
+  if([...sel.options].some(o => o.value === currentBoard)){
+    sel.value = currentBoard;
   }
 
   loadMatch();
