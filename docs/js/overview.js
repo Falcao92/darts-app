@@ -61,6 +61,9 @@ function renderGroups(matches){
 
   let groups = {};
 
+  // ==========================
+  // DATEN SAMMELN
+  // ==========================
   matches.forEach(m => {
 
     const f = m.fields;
@@ -68,23 +71,111 @@ function renderGroups(matches){
     if(f.Round !== "group" || !f.Group) return;
 
     if(!groups[f.Group]){
-      groups[f.Group] = new Set();
+      groups[f.Group] = {};
     }
 
-    groups[f.Group].add(f.Player1);
-    groups[f.Group].add(f.Player2);
+    // Spieler initialisieren
+    if(!groups[f.Group][f.Player1]){
+      groups[f.Group][f.Player1] = createStats(f.Player1);
+    }
+
+    if(!groups[f.Group][f.Player2]){
+      groups[f.Group][f.Player2] = createStats(f.Player2);
+    }
+
+    // ✅ nur fertige Spiele zählen
+    if(f.Status === "finished"){
+
+      const p1 = groups[f.Group][f.Player1];
+      const p2 = groups[f.Group][f.Player2];
+
+      p1.played++;
+      p2.played++;
+
+      // Legs
+      p1.legsFor += f.Legs1 || 0;
+      p1.legsAgainst += f.Legs2 || 0;
+
+      p2.legsFor += f.Legs2 || 0;
+      p2.legsAgainst += f.Legs1 || 0;
+
+      // Punkte
+      if(f.Winner){
+        groups[f.Group][f.Winner].wins++;
+        groups[f.Group][f.Winner].points += 2;
+      }
+    }
   });
 
+  // ==========================
+  // TABLE RENDER
+  // ==========================
   let html = "";
 
-  Object.keys(groups).sort().forEach(g => {
+  Object.keys(groups).sort().forEach(group => {
 
-    html += `<div class="group"><b>Gruppe ${g}</b><br>`;
-    html += [...groups[g]].join("<br>");
-    html += "</div>";
+    let players = Object.values(groups[group]);
+
+    players.forEach(p => {
+      p.diff = p.legsFor - p.legsAgainst;
+      p.avg = p.played > 0
+        ? (p.legsFor * 501) / (p.played * 15)
+        : 0;
+    });
+
+    // ✅ SORTIERUNG
+    players.sort((a,b)=>
+      b.points - a.points ||
+      b.diff - a.diff
+    );
+
+    html += `
+      <div class="group">
+        <b>Gruppe ${group}</b>
+        <table>
+          <tr>
+            <th>Name</th>
+            <th>S</th>
+            <th>W</th>
+            <th>P</th>
+            <th>Diff</th>
+            <th>Avg</th>
+          </tr>
+    `;
+
+    players.forEach(p => {
+
+      html += `
+        <tr>
+          <td>${p.name}</td>
+          <td>${p.played}</td>
+          <td>${p.wins}</td>
+          <td>${p.points}</td>
+          <td>${p.diff}</td>
+          <td>${p.avg.toFixed(1)}</td>
+        </tr>
+      `;
+    });
+
+    html += "</table></div>";
   });
 
   div.innerHTML = html;
+}
+
+
+// ==========================
+// PLAYER TEMPLATE
+// ==========================
+function createStats(name){
+  return {
+    name,
+    played: 0,
+    wins: 0,
+    points: 0,
+    legsFor: 0,
+    legsAgainst: 0
+  };
 }
 
 
