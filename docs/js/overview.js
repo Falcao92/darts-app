@@ -1,92 +1,119 @@
-<!DOCTYPE html>
-<html>
-<head>
+window.addEventListener("DOMContentLoaded", async () => {
 
-<meta charset="UTF-8">
-<title>Turnier Übersicht</title>
+  const ok = await ensureLogin();
+  if (!ok) return;
 
-<script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/graph.js"></script>
-<script src="js/overview.js"></script>
+  update();
 
-<style>
-body{
-  background:#000;
-  color:white;
-  font-family:Arial;
-  margin:0;
+  setInterval(update, 3000); // Live Refresh
+});
+
+
+async function update(){
+
+  const matches = await getList("Matches");
+
+  renderBoards(matches);
+  renderGroups(matches);
 }
 
-h1{
-  text-align:center;
-  color:red;
-  margin:10px;
+
+// ===================================
+// 📺 BOARDS (KORREKT!)
+// ===================================
+function renderBoards(matches){
+
+  const div = document.getElementById("boards");
+
+  // ✅ Board Anzahl aus Admin
+  const BOARD_COUNT = parseInt(localStorage.getItem("boardCount")) || 5;
+
+  let html = "";
+
+  for(let boardId = 1; boardId <= BOARD_COUNT; boardId++){
+
+    const boardMatches = matches.filter(m =>
+      m.fields &&
+      m.fields.BoardId == boardId
+    );
+
+    // ✅ aktuelles Spiel
+    const live = boardMatches.find(m =>
+      m.fields.Status === "active"
+    );
+
+    // ✅ Warteschlange (noch nicht gespielt)
+    const queue = boardMatches.filter(m =>
+      m.fields.Status !== "active" &&
+      m.fields.Status !== "finished"
+    );
+
+    const next = queue[0];
+
+    html += `<div class="board">`;
+    html += `<div class="title">Board ${boardId}</div>`;
+
+    // 🎯 LIVE
+    if(live){
+      html += `
+        <div class="live">
+          ${live.fields.Player1} vs ${live.fields.Player2}<br>
+          ${live.fields.Score1} : ${live.fields.Score2}
+        </div>
+      `;
+    } else {
+      html += `<div>frei</div>`;
+    }
+
+    // ⏭ NEXT
+    if(next){
+      html += `
+        <div class="next">
+          Next:<br>
+          ${next.fields.Player1} vs ${next.fields.Player2}
+        </div>
+      `;
+    }
+
+    html += `</div>`;
+  }
+
+  div.innerHTML = html;
 }
 
-/* ✅ BOARD GRID */
-#boards{
-  display:grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap:12px;
-  padding:10px;
+
+// ===================================
+// 🧩 GRUPPEN KOMPAKT
+// ===================================
+function renderGroups(matches){
+
+  const div = document.getElementById("groups");
+
+  let groups = {};
+
+  matches.forEach(m => {
+
+    const f = m.fields;
+
+    if(f.Group){
+      if(!groups[f.Group]) groups[f.Group] = [];
+      groups[f.Group].push(f.Player1, f.Player2);
+    }
+  });
+
+  let html = "";
+
+  Object.keys(groups).forEach(g => {
+
+    const players = [...new Set(groups[g])];
+
+    html += `
+      <div class="group">
+        <b>Gruppe ${g}</b><br>
+        ${players.join("<br>")}
+      </div>
+    `;
+  });
+
+  div.innerHTML = html;
 }
-
-/* ✅ BOARD CARD */
-.board{
-  background:#111;
-  border:2px solid red;
-  border-radius:10px;
-  padding:10px;
-}
-
-.title{
-  font-size:18px;
-  font-weight:bold;
-  margin-bottom:8px;
-  color:#fff;
-}
-
-/* ✅ LIVE */
-.live{
-  color:#00ff00;
-  font-size:16px;
-}
-
-/* ✅ NEXT */
-.next{
-  margin-top:8px;
-  color:#ffaa00;
-  font-size:14px;
-}
-
-/* ✅ Gruppen kompakt */
-#groups{
-  padding:10px;
-  display:grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px,1fr));
-  gap:10px;
-}
-
-.group{
-  background:#111;
-  padding:8px;
-  border:1px solid #333;
-  border-radius:6px;
-  font-size:14px;
-}
-</style>
-
-</head>
-
-<body>
-
-<h1>🎯 Turnier Übersicht</h1>
-
-<div id="boards"></div>
-
-<h2 style="text-align:center;">Gruppen</h2>
-<div id="groups"></div>
-
-</body>
-</html>
