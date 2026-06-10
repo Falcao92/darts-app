@@ -2,82 +2,72 @@
 <html>
 <head>
 
-  <title>Darts Board</title>
+<meta charset="UTF-8">
+<title>Darts Board</title>
 
-  <!-- ✅ MSAL -->
-  <script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
+<script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/graph.js"></script>
+<script src="js/board.js"></script>
 
-  <!-- ✅ KORREKTE SCRIPT TAGS -->
-  <script src="js/auth.js"></script>
-  <script src="js/graph.js"></script>
-  <script src="js/board.js"></script>
-
-  <style>
-    body {
-      margin: 0;
-      background: #000;
-      color: white;
-      font-family: Arial, sans-serif;
-      text-align: center;
-    }
-
-    #boardLabel {
-      position: absolute;
-      top: 10px;
-      left: 20px;
-      color: #aaa;
-    }
-
-    .players {
-      display: flex;
-      justify-content: space-around;
-      margin-top: 60px;
-      font-size: 40px;
-    }
-
-    .active {
-      color: yellow;
-    }
-
-    .score {
-      font-size: 120px;
-      margin: 40px 0;
-      color: red;
-    }
-
-    .checkout {
-      font-size: 40px;
-      color: #00ff88;
-    }
-    
-.legs {
-  font-size: 40px;
-  color: #00aaff;
-  margin-top: 10px;
+<style>
+body{
+  background:#000;
+  color:white;
+  font-family:Arial;
+  text-align:center;
 }
 
+/* Spieler */
+.players{
+  display:flex;
+  justify-content:space-between;
+  padding:20px;
+  font-size:28px;
+}
 
-  </style>
+.active{
+  color:yellow;
+}
+
+/* Score */
+.score{
+  font-size:120px;
+  color:red;
+}
+
+/* Legs */
+.legs{
+  margin-top:10px;
+  font-size:28px;
+  color:#00ccff;
+}
+
+/* Checkout */
+.checkout{
+  margin-top:10px;
+  font-size:24px;
+  color:yellow;
+}
+</style>
 
 </head>
 
 <body>
 
-  <!-- ✅ DIESE ELEMENTE SIND PFLICHT -->
+<!-- Board -->
+<div id="boardLabel"></div>
 
-  <div id="boardLabel"></div>
+<div class="players">
+  <div id="p1">P1</div>
+  <div id="p2">P2</div>
+</div>
 
-  <div class="players">
-    <div id="p1">P1</div>
-    <div id="p2">P2</div>
-  </div>
+<div class="score" id="score">501 : 501</div>
 
-  <div class="score" id="score">0 : 0</div>
+<div class="legs" id="legs">0 : 0</div>
 
-  <div class="checkout" id="checkout"></div>
-
-  <div class="legs" id="legs"></div>
-
+<div class="checkout" id="checkout"></div>
 
 </body>
 </html>
