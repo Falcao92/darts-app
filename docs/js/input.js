@@ -305,7 +305,7 @@ async function updateMatch(id, s1, s2, turn, legs1, legs2, winner){
       Winner: winner || "",
       Status: status
     })
-  );
+  ;
 
   // ✅ NUR BEI MATCH ENDE → NEXT STARTEN
   if(winner){
