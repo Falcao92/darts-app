@@ -20,7 +20,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 });
 
 
-// ✅ Match laden
+// ✅ Match laden (MIT FILTER!)
 async function loadBoard() {
 
   const matches = await getList("Matches");
@@ -32,12 +32,26 @@ async function loadBoard() {
     return;
   }
 
-  currentMatch = matches.find(m => m.fields.BoardId == boardId);
+  // ✅ NUR gültige + aktive Matches finden
+  const activeMatches = matches.filter(m =>
+    m.fields &&
+    m.fields.BoardId == boardId &&
+    m.fields.Status === "active" &&   // 🔥 WICHTIG
+    m.fields.Player1 &&
+    m.fields.Player2
+  );
 
-  console.log("Gefundenes Match:", currentMatch);
+  console.log("Aktive Matches für Board:", activeMatches);
+
+  // ✅ nur erstes Match nehmen (es sollte eh nur eins geben)
+  currentMatch = activeMatches[0];
 
   if (!currentMatch) {
-    set("score", "Kein Spiel auf Board " + boardId);
+    set("score", "Kein aktives Spiel auf Board " + boardId);
+    set("p1", "-");
+    set("p2", "-");
+    set("checkout", "");
+    set("legs", "");
     return;
   }
 
@@ -51,12 +65,15 @@ function updateUI() {
   if (!currentMatch || !currentMatch.fields) return;
 
   const f = currentMatch.fields;
-set("legs", `${f.Legs1 || 0} : ${f.Legs2 || 0}`);
+
   set("boardLabel", "Board " + f.BoardId);
+
   set("p1", f.Player1 || "-");
   set("p2", f.Player2 || "-");
 
   set("score", `${f.Score1} : ${f.Score2}`);
+
+  set("legs", `${f.Legs1 || 0} : ${f.Legs2 || 0}`);
 
   highlightTurn(f);
 
@@ -85,7 +102,7 @@ function highlightTurn(f) {
 }
 
 
-// ✅ Sichere Ausgabe (verhindert deine Fehler!)
+// ✅ Sichere Ausgabe
 function set(id, value) {
 
   const el = document.getElementById(id);
