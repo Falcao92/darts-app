@@ -47,6 +47,7 @@ function loadMatch(){
   const board = document.getElementById("boardSelect").value;
 
   currentMatch = matches.find(m =>
+    m.fields &&
     m.fields.BoardId == board &&
     m.fields.Status === "active"
   );
@@ -88,6 +89,8 @@ function set(id,val){
 function createButtons(){
 
   const div = document.getElementById("buttons");
+  if(!div) return;
+
   div.innerHTML="";
 
   for(let i=1;i<=20;i++){
@@ -256,7 +259,6 @@ async function finishMatch(winner,l1,l2){
 
   await reload();
 
-  // ✅ NEU: KO LOGIK
   await handleKORound(f, winner);
 
   await autoProgress();
@@ -264,7 +266,7 @@ async function finishMatch(winner,l1,l2){
 
 
 // ==========================
-// ✅ NEU: KO LOGIK
+// ✅ KO LOGIK
 // ==========================
 async function handleKORound(matchFields, winner){
 
@@ -273,7 +275,7 @@ async function handleKORound(matchFields, winner){
   }
 
   if(matchFields.Round === "final"){
-    alert("🏆 Sieger: " + winner);
+    alert("🏆 Turniersieger: " + winner);
   }
 
   if(matchFields.Round === "third"){
@@ -288,13 +290,12 @@ async function handleSemiFinals(){
   await refreshMatches();
 
   const semis = matches.filter(m => m.fields.Round === "semi");
-
   const finished = semis.filter(m => m.fields.Status === "finished");
 
   if(finished.length !== 2) return;
 
-  const winners = [];
-  const losers = [];
+  let winners = [];
+  let losers = [];
 
   finished.forEach(m => {
     const f = m.fields;
@@ -317,24 +318,33 @@ async function createFinalAndThird(finalists, losers){
 
   const token = await getToken();
 
-  // Finale Board 1
   await create(finalists[0], finalists[1], "final", 1, token);
-
-  // Platz 3 Board 2
   await create(losers[0], losers[1], "third", 2, token);
 }
 
 
 // ==========================
+// ✅ FIXED AUTO PROGRESS
+// ==========================
 async function autoProgress(){
 
   await refreshMatches();
 
-  const group = matches.filter(m=>m.fields.Round==="group");
+  const group = matches.filter(m =>
+    m.fields && m.fields.Round === "group"
+  );
 
-  if(group.length>0 && group.every(m=>m.fields.Status==="finished")){
-    await startKO();
-    return;
+  if(group.length > 0){
+
+    const ready = group.every(m =>
+      m.fields.Status === "finished"
+    );
+
+    if(ready){
+
+      await startKO();
+      return;
+    }
   }
 
   await fillBoards();
@@ -344,19 +354,19 @@ async function autoProgress(){
 // ==========================
 async function startKO(){
 
-  const existingSemi = matches.some(m => m.fields.Round === "semi");
-  if(existingSemi) return; // ✅ verhindert doppelt
+  const existing = matches.some(m => m.fields.Round === "semi");
+  if(existing) return;
 
   let winners = matches
-    .filter(m=>m.fields.Round==="group")
-    .map(m=>m.fields.Winner);
+    .filter(m => m.fields.Round === "group")
+    .map(m => m.fields.Winner);
 
-  winners=[...new Set(winners)];
+  winners = [...new Set(winners)];
 
-  if(winners.length!==4) return;
+  if(winners.length < 4) return;
 
-  await create(winners[0],winners[1],"semi",1);
-  await create(winners[2],winners[3],"semi",2);
+  await create(winners[0], winners[1], "semi", 1);
+  await create(winners[2], winners[3], "semi", 2);
 }
 
 
@@ -427,7 +437,9 @@ async function reload(){
   await refreshMatches();
   buildBoardSelect();
 
-  document.getElementById("boardSelect").value = currentBoard;
+  if([...document.getElementById("boardSelect").options].some(o => o.value === currentBoard)){
+    document.getElementById("boardSelect").value = currentBoard;
+  }
 
   loadMatch();
 }
