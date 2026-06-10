@@ -158,7 +158,30 @@ async function createMatch(p1, p2, board, group="", round="group", status="waiti
 
   const token = await getToken();
 
-  await fetch(
+  const body = {
+    fields:{
+      Title: `${p1} vs ${p2}`,
+      Player1: p1 || "",
+      Player2: p2 || "",
+      Score1: 501,
+      Score2: 501,
+      Legs1: 0,
+      Legs2: 0,
+      LegsToWin: 3,
+      BoardId: String(board),
+      Turn: "p1",
+      Status: status,
+      Group: group,
+      Winner: "",
+      Round: round,
+      NextMatchId: "",
+      NextSlot: ""
+    }
+  };
+
+  console.log("🔥 SEND:", body);
+
+  const res = await fetch(
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
     {
       method:"POST",
@@ -166,28 +189,14 @@ async function createMatch(p1, p2, board, group="", round="group", status="waiti
         Authorization:`Bearer ${token}`,
         "Content-Type":"application/json"
       },
-      body:JSON.stringify({
-        fields:{
-          Title: p1 + " vs " + p2,
-          Player1: p1,
-          Player2: p2,
-          Score1: 501,
-          Score2: 501,
-          Legs1: 0,
-          Legs2: 0,
-          LegsToWin: 3,
-          BoardId: board,
-          Turn: "p1",
-          Status: status,
-          Group: group,
-          Winner: "",
-          Round: round,
-          NextMatchId: "",
-          NextSlot: ""
-        }
-      })
+      body:JSON.stringify(body)
     }
   );
+
+  if(!res.ok){
+    const err = await res.text();
+    console.error("❌ MATCH ERROR:", err);
+  }
 }
 
 
