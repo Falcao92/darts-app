@@ -5,7 +5,6 @@
 <meta charset="UTF-8">
 <title>Turnier Übersicht</title>
 
-<!-- ✅ RICHTIGE SCRIPT TAGS -->
 <script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/graph.js"></script>
@@ -25,10 +24,17 @@ h1{
   margin:10px;
 }
 
+h2{
+  text-align:center;
+}
+
+/* =========================
+   📺 BOARDS
+========================= */
 #boards{
   display:grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap:12px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap:10px;
   padding:10px;
 }
 
@@ -42,30 +48,70 @@ h1{
 .title{
   font-size:18px;
   font-weight:bold;
+  margin-bottom:5px;
 }
 
 .live{
   color:#00ff00;
+  font-size:16px;
 }
 
 .next{
   margin-top:8px;
   color:#ffaa00;
+  font-size:14px;
 }
+
+/* =========================
+   🧩 GRUPPEN TABLE
+========================= */
 
 #groups{
   padding:10px;
   display:grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px,1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px,1fr));
   gap:10px;
 }
 
 .group{
   background:#111;
-  padding:8px;
+  padding:10px;
   border:1px solid #333;
   border-radius:6px;
 }
+
+/* ✅ TABLE STYLE */
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:5px;
+  font-size:13px;
+}
+
+th{
+  color:#aaa;
+  border-bottom:1px solid #444;
+  padding:4px;
+}
+
+td{
+  border-bottom:1px solid #222;
+  padding:4px;
+  text-align:center;
+}
+
+/* ✅ Platz 1 Highlight */
+tr:first-child td{
+  color:#00ff00;
+  font-weight:bold;
+}
+
+/* kompakt */
+.small{
+  font-size:12px;
+  color:#888;
+}
+
 </style>
 
 </head>
@@ -74,9 +120,12 @@ h1{
 
 <h1>🎯 Turnier Übersicht</h1>
 
+<!-- 📺 BOARDS -->
 <div id="boards"></div>
 
-<h2 style="text-align:center;">Gruppen</h2>
+<h2>🧩 Gruppenphase</h2>
+
+<!-- 🧩 TABELLEN -->
 <div id="groups"></div>
 
 </body>
