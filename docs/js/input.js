@@ -59,9 +59,7 @@ function updateUI(){
   set("players", `${f.Player1} vs ${f.Player2}`);
   set("score", `${f.Score1} : ${f.Score2}`);
   set("turn", "👉 " + (f.Turn === "p1" ? f.Player1 : f.Player2));
-
-  // ✅ LEGS ANZEIGE
-  set("legs", `Legs: ${f.Legs1 || 0} : ${f.Legs2 || 0}`);
+  set("legs", `Legs ${f.Legs1 || 0} : ${f.Legs2 || 0}`);
 }
 
 
@@ -122,7 +120,7 @@ function addButton(value){
 
 
 // ==========================
-// DART INPUT
+// INPUT FLOW
 // ==========================
 function insertDart(value){
 
@@ -142,7 +140,7 @@ function insertDart(value){
 
 
 // ==========================
-// SUBMIT
+// SUBMIT (FIXED!)
 // ==========================
 async function submit(){
 
@@ -163,6 +161,7 @@ async function submit(){
   let turn = f.Turn;
 
   const lastDart = d3.value || d2.value || d1.value;
+  const legsToWin = f.LegsToWin || 3;
 
 
   // ================= PLAYER 1 =================
@@ -180,10 +179,20 @@ async function submit(){
 
       alert(f.Player1 + " gewinnt das Leg!");
 
-      await updateMatch(id, 501, 501, "p2", legs1, legs2, f.Player1);
+      // ✅ MATCH GEWINN?
+      if(legs1 >= legsToWin){
+
+        alert(f.Player1 + " gewinnt das MATCH!");
+
+        await updateMatch(id, 501, 501, "p2", legs1, legs2, f.Player1);
+
+      } else {
+
+        // ✅ NUR LEG RESET (kein winner!)
+        await updateMatch(id, 501, 501, "p2", legs1, legs2);
+      }
 
       resetInputs();
-
       reloadMatch(id);
       return;
     }
@@ -197,6 +206,7 @@ async function submit(){
       turn = "p2";
     }
   }
+
 
   // ================= PLAYER 2 =================
   else{
@@ -213,10 +223,18 @@ async function submit(){
 
       alert(f.Player2 + " gewinnt das Leg!");
 
-      await updateMatch(id, 501, 501, "p1", legs1, legs2, f.Player2);
+      if(legs2 >= legsToWin){
+
+        alert(f.Player2 + " gewinnt das MATCH!");
+
+        await updateMatch(id, 501, 501, "p1", legs1, legs2, f.Player2);
+
+      } else {
+
+        await updateMatch(id, 501, 501, "p1", legs1, legs2);
+      }
 
       resetInputs();
-
       reloadMatch(id);
       return;
     }
@@ -234,7 +252,6 @@ async function submit(){
   await updateMatch(id, score1, score2, turn, legs1, legs2);
 
   resetInputs();
-
   reloadMatch(id);
 }
 
@@ -288,8 +305,9 @@ async function updateMatch(id, s1, s2, turn, legs1, legs2, winner){
       Winner: winner || "",
       Status: status
     })
-  });
+  );
 
+  // ✅ NUR BEI MATCH ENDE → NEXT STARTEN
   if(winner){
     await activateNextMatch(current.fields.BoardId);
   }
