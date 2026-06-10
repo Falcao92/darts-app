@@ -1,57 +1,39 @@
-// 👉 Board aus URL lesen
+// 👉 Board aus URL
 const params = new URLSearchParams(window.location.search);
 const boardId = params.get("board");
 
 let currentMatch = null;
 
 
-// ✅ Seite starten
+// ==========================
+// START
+// ==========================
 window.addEventListener("DOMContentLoaded", async () => {
 
   const ok = await ensureLogin();
   if (!ok) return;
 
-  console.log("Board geladen:", boardId);
+  loadBoard();
 
-  await loadBoard();
-
-  // 🔥 Auto Refresh (Live Anzeige)
-  setInterval(loadBoard, 2000);
+  setInterval(loadBoard, 2000); // live refresh
 });
 
 
-// ✅ Match laden (MIT FILTER!)
-async function loadBoard() {
+// ==========================
+// MATCH LADEN
+// ==========================
+async function loadBoard(){
 
   const matches = await getList("Matches");
 
-  console.log("Alle Matches:", matches);
-
-  if (!matches || matches.length === 0) {
-    set("score", "Keine Matches vorhanden");
-    return;
-  }
-
-  // ✅ NUR gültige + aktive Matches finden
-  const activeMatches = matches.filter(m =>
+  currentMatch = matches.find(m =>
     m.fields &&
     m.fields.BoardId == boardId &&
-    m.fields.Status === "active" &&   // 🔥 WICHTIG
-    m.fields.Player1 &&
-    m.fields.Player2
+    m.fields.Status === "active"
   );
 
-  console.log("Aktive Matches für Board:", activeMatches);
-
-  // ✅ nur erstes Match nehmen (es sollte eh nur eins geben)
-  currentMatch = activeMatches[0];
-
-  if (!currentMatch) {
-    set("score", "Kein aktives Spiel auf Board " + boardId);
-    set("p1", "-");
-    set("p2", "-");
-    set("checkout", "");
-    set("legs", "");
+  if(!currentMatch){
+    set("score", "Kein Spiel");
     return;
   }
 
@@ -59,42 +41,41 @@ async function loadBoard() {
 }
 
 
-// ✅ UI aktualisieren
-function updateUI() {
-
-  if (!currentMatch || !currentMatch.fields) return;
+// ==========================
+// UI
+// ==========================
+function updateUI(){
 
   const f = currentMatch.fields;
 
-  set("boardLabel", "Board " + f.BoardId);
-
-  set("p1", f.Player1 || "-");
-  set("p2", f.Player2 || "-");
+  set("p1", f.Player1);
+  set("p2", f.Player2);
 
   set("score", `${f.Score1} : ${f.Score2}`);
 
+  // ✅ LEGS FIX
   set("legs", `${f.Legs1 || 0} : ${f.Legs2 || 0}`);
 
   highlightTurn(f);
 
-  const score = f.Turn === "p1" ? f.Score1 : f.Score2;
-
-  set("checkout", getCheckout(score));
+  // ✅ CHECKOUT HILFE
+  const remaining = f.Turn === "p1" ? f.Score1 : f.Score2;
+  set("checkout", getCheckout(remaining));
 }
 
 
-// ✅ Spieler hervorheben
-function highlightTurn(f) {
+// ==========================
+// AKTIVER SPIELER
+// ==========================
+function highlightTurn(f){
 
   const p1 = document.getElementById("p1");
   const p2 = document.getElementById("p2");
 
-  if (!p1 || !p2) return;
-
   p1.classList.remove("active");
   p2.classList.remove("active");
 
-  if (f.Turn === "p1") {
+  if(f.Turn === "p1"){
     p1.classList.add("active");
   } else {
     p2.classList.add("active");
@@ -102,22 +83,22 @@ function highlightTurn(f) {
 }
 
 
-// ✅ Sichere Ausgabe
-function set(id, value) {
+// ==========================
+// HELFER
+// ==========================
+function set(id, value){
 
   const el = document.getElementById(id);
-
-  if (!el) {
-    console.error("Element fehlt:", id);
-    return;
-  }
-
-  el.innerHTML = value;
+  if(el) el.innerHTML = value;
 }
 
 
-// ✅ Checkout Tabelle
-function getCheckout(score) {
+// ==========================
+// CHECKOUT TABELLE
+// ==========================
+function getCheckout(score){
+
+  if(score > 170) return ""; // kein Checkout möglich
 
   const map = {
     170:"T20 T20 Bull",
