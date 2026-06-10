@@ -12,6 +12,8 @@ window.addEventListener("DOMContentLoaded", async () => {
   const boards = [...new Set(matches.map(m => m.fields.BoardId))];
 
   const sel = document.getElementById("boardSelect");
+  if(!sel) return;
+
   sel.innerHTML = "";
 
   boards.forEach(b => {
@@ -20,9 +22,40 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   sel.addEventListener("change", loadMatch);
 
-  createButtons();
+  createButtons(); // ✅ war kaputt
   loadMatch();
 });
+
+
+// ==========================
+// ✅ BUTTONS (FIX)
+// ==========================
+function createButtons(){
+
+  const div = document.getElementById("buttons");
+  if(!div) return;
+
+  div.innerHTML = "";
+
+  for(let i = 1; i <= 20; i++){
+    addButton(i);
+    addButton("D"+i);
+    addButton("T"+i);
+  }
+
+  addButton("25");
+  addButton("BULL");
+}
+
+function addButton(value){
+
+  const btn = document.createElement("button");
+
+  btn.innerText = value;
+  btn.onclick = () => insertDart(value);
+
+  document.getElementById("buttons").appendChild(btn);
+}
 
 
 // ==========================
@@ -30,7 +63,10 @@ window.addEventListener("DOMContentLoaded", async () => {
 // ==========================
 function loadMatch(){
 
-  const board = document.getElementById("boardSelect").value;
+  const boardEl = document.getElementById("boardSelect");
+  if(!boardEl) return;
+
+  const board = boardEl.value;
 
   currentMatch = matches.find(m =>
     m.fields &&
@@ -51,9 +87,9 @@ function loadMatch(){
 
 
 // ==========================
-// UI
-// ==========================
 function updateUI(){
+
+  if(!currentMatch) return;
 
   const f = currentMatch.fields;
 
@@ -69,6 +105,7 @@ function set(id, val){
   const el = document.getElementById(id);
   if(el) el.innerHTML = val;
 }
+
 
 function parse(v){
   if(!v) return 0;
@@ -110,7 +147,7 @@ function insertDart(value){
 
 
 // ==========================
-// SUBMIT (FIXED)
+// SUBMIT
 // ==========================
 async function submit(){
 
@@ -134,20 +171,15 @@ async function submit(){
   const legsToWin = parseInt(f.LegsToWin) || 3;
 
 
-  // PLAYER 1
   if(turn === "p1"){
 
     let ns = score1 - total;
 
-    if(ns < 0 || ns === 1){
-      turn = "p2";
-    }
-
-    else if(ns === 0 && isDouble(lastDart)){
+    if(ns === 0 && isDouble(lastDart)){
 
       legs1++;
 
-      if(Number(legs1) >= legsToWin){
+      if(legs1 >= legsToWin){
         await updateMatch(id, 501, 501, "p2", legs1, legs2, f.Player1);
       } else {
         await updateMatch(id, 501, 501, "p2", legs1, legs2);
@@ -158,26 +190,18 @@ async function submit(){
       return;
     }
 
-    else{
-      score1 = ns;
-      turn = "p2";
-    }
+    score1 = (ns < 0 || ns === 1) ? score1 : ns;
+    turn = "p2";
   }
-
-  // PLAYER 2
   else{
 
     let ns = score2 - total;
 
-    if(ns < 0 || ns === 1){
-      turn = "p1";
-    }
-
-    else if(ns === 0 && isDouble(lastDart)){
+    if(ns === 0 && isDouble(lastDart)){
 
       legs2++;
 
-      if(Number(legs2) >= legsToWin){
+      if(legs2 >= legsToWin){
         await updateMatch(id, 501, 501, "p1", legs1, legs2, f.Player2);
       } else {
         await updateMatch(id, 501, 501, "p1", legs1, legs2);
@@ -188,10 +212,8 @@ async function submit(){
       return;
     }
 
-    else{
-      score2 = ns;
-      turn = "p1";
-    }
+    score2 = (ns < 0 || ns === 1) ? score2 : ns;
+    turn = "p1";
   }
 
   await updateMatch(id, score1, score2, turn, legs1, legs2);
@@ -205,8 +227,6 @@ async function submit(){
 async function updateMatch(id, s1, s2, turn, legs1, legs2, winner){
 
   const token = await getToken();
-
-  const status = winner ? "finished" : "active";
 
   await fetch(
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${id}/fields`,
@@ -223,7 +243,7 @@ async function updateMatch(id, s1, s2, turn, legs1, legs2, winner){
         Legs1: legs1,
         Legs2: legs2,
         Winner: winner || "",
-        Status: status
+        Status: winner ? "finished" : "active"
       })
     }
   );
@@ -236,12 +256,14 @@ async function updateMatch(id, s1, s2, turn, legs1, legs2, winner){
 
 
 // ==========================
-// KO AUTO
+// KO AUTO FIX
 // ==========================
 async function checkAndStartKO(){
 
+  await refreshMatches();
+
   const groupMatches = matches.filter(m =>
-    m.fields.Round === "group"
+    m.fields && m.fields.Round === "group"
   );
 
   if(groupMatches.length === 0) return;
@@ -290,7 +312,6 @@ async function createKOFromFinishedGroups(){
       .sort((a,b)=>b[1]-a[1]);
 
     qualified.push(sorted[0][0]);
-
     if(sorted[1]) qualified.push(sorted[1][0]);
   });
 
@@ -301,19 +322,12 @@ async function createKOFromFinishedGroups(){
 
 
 // ==========================
-// ✅ KO BUILDER (NEU)
-// ==========================
 async function createKOBracket(players, boardCount){
 
-  players.sort(()=>Math.random()-0.5);
-
-  let round = getRoundName(players.length);
-
+  const token = await getToken();
   let board = 1;
 
   for(let i=0;i<players.length;i+=2){
-
-    const token = await getToken();
 
     await fetch(
       `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
@@ -336,9 +350,8 @@ async function createKOBracket(players, boardCount){
           BoardId: String(board),
           Turn: "p1",
           Status: "active",
-          Group: "",
           Winner: "",
-          Round: round
+          Round: "semi"
         }
       })
     });
@@ -348,35 +361,4 @@ async function createKOBracket(players, boardCount){
   }
 
   await refreshMatches();
-}
-
-
-// ==========================
-function getRoundName(count){
-
-  if(count === 16) return "last16";
-  if(count === 8) return "quarter";
-  if(count === 4) return "semi";
-  if(count === 2) return "final";
-
-  return "ko";
-}
-
-
-// ==========================
-async function reloadMatch(id){
-  await refreshMatches();
-  currentMatch = matches.find(m => m.id === id);
-  updateUI();
-}
-
-async function refreshMatches(){
-  matches = await getList("Matches");
-}
-
-function resetInputs(){
-  d1.value = "";
-  d2.value = "";
-  d3.value = "";
-  currentInput = 1;
 }
