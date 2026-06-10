@@ -304,9 +304,12 @@ await fetch(
 });
 
   // ✅ NUR BEI MATCH ENDE
-  if(winner){
-    await activateNextMatch(currentMatch.fields.BoardId);
-  }
+
+if(winner){
+  await advanceWinner(currentMatch); // ✅ NEU
+  await activateNextMatch(currentMatch.fields.BoardId);
+}
+
 }
 
 
