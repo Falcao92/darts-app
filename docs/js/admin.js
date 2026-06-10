@@ -343,16 +343,21 @@ async function createNextRounds(firstRound, boardCount){
   let board = 1;
   let ids = [];
 
-  for(const m of current){
+let firstMatch = true;
 
-    const id = await createMatchReturnId(
-      m.Player1,
-      m.Player2,
-      board,
-      "",
-      m.Round,
-      "waiting"
-    );
+for(const m of current){
+
+  const id = await createMatchReturnId(
+    m.Player1,
+    m.Player2,
+    board,
+    "",
+    m.Round,
+    firstMatch ? "active" : "waiting"
+  );
+
+  firstMatch = false;
+
 
     ids.push(id);
 
