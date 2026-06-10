@@ -13,7 +13,8 @@ async function update(){
   const matches = await getList("Matches");
 
   renderBoards(matches);
-  renderBracket(matches);
+  renderGroups(matches);   // ✅ FIX
+  renderBracket(matches);  // ✅ FIX
 }
 
 
@@ -52,18 +53,65 @@ function renderBoards(matches){
 
 
 // =======================
-// BRACKET
+// ✅ GROUPS (FIXED)
+// =======================
+function renderGroups(matches){
+
+  const div = document.getElementById("groups");
+
+  let groups = {};
+
+  matches.forEach(m => {
+
+    const f = m.fields;
+
+    if(f.Round !== "group" || !f.Group) return;
+
+    if(!groups[f.Group]){
+      groups[f.Group] = new Set();
+    }
+
+    groups[f.Group].add(f.Player1);
+    groups[f.Group].add(f.Player2);
+  });
+
+  let html = "";
+
+  Object.keys(groups).sort().forEach(g => {
+
+    html += `<div class="group"><b>Gruppe ${g}</b><br>`;
+    html += [...groups[g]].join("<br>");
+    html += "</div>";
+  });
+
+  div.innerHTML = html;
+}
+
+
+// =======================
+// ✅ BRACKET (FIXED)
 // =======================
 function renderBracket(matches){
 
   const div = document.getElementById("bracket");
 
+  const ko = matches.filter(m =>
+    m.fields &&
+    m.fields.Round !== "group"
+  );
+
+  if(ko.length === 0){
+    div.innerHTML = "<p>Keine KO Phase</p>";
+    return;
+  }
+
   const order = ["last16","quarter","semi","final"];
 
   let rounds = {};
+
   order.forEach(r => rounds[r] = []);
 
-  matches.forEach(m => {
+  ko.forEach(m => {
     const r = m.fields.Round;
     if(rounds[r]) rounds[r].push(m);
   });
@@ -77,6 +125,7 @@ function renderBracket(matches){
     html += `<div class="round"><b>${label(r)}</b>`;
 
     rounds[r].forEach(m => {
+
       const f = m.fields;
 
       html += `
@@ -98,10 +147,15 @@ function renderBracket(matches){
 }
 
 
+// =======================
+// LABELS
+// =======================
 function label(r){
+
   if(r==="last16") return "Achtelfinale";
   if(r==="quarter") return "Viertelfinale";
   if(r==="semi") return "Halbfinale";
   if(r==="final") return "Finale";
+
   return r;
 }
