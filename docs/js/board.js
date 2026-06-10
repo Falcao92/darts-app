@@ -25,14 +25,20 @@ async function loadBoard(){
 
   const matches = await getList("Matches");
 
-  currentMatch = matches.find(m =>
+  // ✅ NUR AKTIVES MATCH DIESES BOARDS
+  const activeMatches = matches.filter(m =>
     m.fields &&
     m.fields.BoardId == boardId &&
     m.fields.Status === "active"
   );
 
+  // ✅ Sicherstellen: nur 1 Match
+  currentMatch = activeMatches.length > 0 ? activeMatches[0] : null;
+
   if(!currentMatch){
     set("score", "Kein Spiel");
+    set("legs", "");
+    set("checkout", "");
     return;
   }
 
