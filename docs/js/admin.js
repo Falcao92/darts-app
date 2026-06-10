@@ -5,6 +5,11 @@ window.addEventListener("DOMContentLoaded", async () => {
   if (!ok) return;
 
   await loadPlayers();
+
+  // ✅ ENTER = Spieler hinzufügen
+  document.getElementById("name").addEventListener("keypress", e => {
+    if(e.key === "Enter") createPlayer();
+  });
 });
 
 
@@ -20,6 +25,11 @@ async function startTournament(){
 
   await clearMatches();
 
+  if(players.length < 2){
+    alert("❌ Mindestens 2 Spieler nötig");
+    return;
+  }
+
   if(useGroups){
 
     await createGroups();
@@ -30,7 +40,6 @@ async function startTournament(){
 
     let list = players.map(p => p.fields.Title);
 
-    // ✅ Fix ungerade Spieler
     if(list.length % 2 !== 0){
       list.pop();
       alert("⚠️ Ungerade Spieler – letzter entfernt");
@@ -44,11 +53,11 @@ async function startTournament(){
 
 
 // ==========================
-// SPIELER
+// SPIELER LADEN
 // ==========================
 async function loadPlayers(){
 
-  players = await getList("Players");
+  players = await getList("Players") || [];
 
   const div = document.getElementById("players");
   const p1 = document.getElementById("p1");
@@ -77,16 +86,46 @@ async function loadPlayers(){
 
 
 // ==========================
+// ➕ SPIELER ERSTELLEN
+// ==========================
+async function createPlayer(){
+
+  const name = document.getElementById("name").value.trim();
+  if(!name) return;
+
+  const token = await getToken();
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Players/items`,
+    {
+      method:"POST",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        fields:{ Title: name }
+      })
+    }
+  );
+
+  document.getElementById("name").value = "";
+  await loadPlayers();
+}
+
+
+// ==========================
 async function deletePlayer(id){
 
   const token = await getToken();
 
   await fetch(
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Players/items/${id}`,
-  {
-    method:"DELETE",
-    headers:{ Authorization:`Bearer ${token}` }
-  });
+    {
+      method:"DELETE",
+      headers:{ Authorization:`Bearer ${token}` }
+    }
+  );
 
   await loadPlayers();
 }
@@ -121,33 +160,34 @@ async function createMatch(p1, p2, board, group="", round="group", status="waiti
 
   await fetch(
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
-  {
-    method:"POST",
-    headers:{
-      Authorization:`Bearer ${token}`,
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({
-      fields:{
-        Title: p1 + " vs " + p2,
-        Player1: p1,
-        Player2: p2,
-        Score1: 501,
-        Score2: 501,
-        Legs1: 0,
-        Legs2: 0,
-        LegsToWin: 3,
-        BoardId: board,
-        Turn: "p1",
-        Status: status,
-        Group: group,
-        Winner: "",
-        Round: round,
-        NextMatchId: "",
-        NextSlot: ""
-      }
-    })
-  });
+    {
+      method:"POST",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        fields:{
+          Title: p1 + " vs " + p2,
+          Player1: p1,
+          Player2: p2,
+          Score1: 501,
+          Score2: 501,
+          Legs1: 0,
+          Legs2: 0,
+          LegsToWin: 3,
+          BoardId: board,
+          Turn: "p1",
+          Status: status,
+          Group: group,
+          Winner: "",
+          Round: round,
+          NextMatchId: "",
+          NextSlot: ""
+        }
+      })
+    }
+  );
 }
 
 
@@ -160,6 +200,12 @@ async function createGroups(){
   const boardCount = parseInt(document.getElementById("boardCount").value);
 
   let list = players.map(p => p.fields.Title);
+
+  if(list.length === 0){
+    console.error("Keine Spieler!");
+    return;
+  }
+
   list.sort(() => Math.random() - 0.5);
 
   let groups = [];
@@ -228,7 +274,10 @@ function renderGroups(groups){
 // ==========================
 async function createKOBracket(players, boardCount){
 
-  if(players.length < 2) return;
+  if(players.length < 2){
+    console.error("Zu wenige Spieler");
+    return;
+  }
 
   if(players.length % 2 !== 0){
     players.pop();
@@ -241,7 +290,6 @@ async function createKOBracket(players, boardCount){
   let first = [];
 
   for(let i=0;i<players.length;i+=2){
-
     first.push({
       Player1: players[i],
       Player2: players[i+1],
@@ -276,6 +324,11 @@ async function createNextRounds(firstRound, boardCount){
 
   let current = firstRound;
 
+  if(!current[0] || !current[0].Round){
+    console.error("❌ Round fehlt");
+    return;
+  }
+
   let next = getNextRound(current[0].Round);
 
   let board = 1;
@@ -303,6 +356,8 @@ async function createNextRounds(firstRound, boardCount){
     let nextIds = [];
 
     for(let i=0;i<ids.length;i+=2){
+
+      if(!ids[i+1]) break; // ✅ Sicherheitsfix
 
       const id = await createMatchReturnId(
         "",
@@ -335,33 +390,34 @@ async function createMatchReturnId(p1,p2,board,group,round,status){
 
   const res = await fetch(
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
-  {
-    method:"POST",
-    headers:{
-      Authorization:`Bearer ${token}`,
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({
-      fields:{
-        Title: p1 + " vs " + p2,
-        Player1: p1,
-        Player2: p2,
-        Score1: 501,
-        Score2: 501,
-        Legs1: 0,
-        Legs2: 0,
-        LegsToWin: 3,
-        BoardId: board,
-        Turn: "p1",
-        Status: status,
-        Group: "",
-        Winner: "",
-        Round: round,
-        NextMatchId:"",
-        NextSlot:""
-      }
-    })
-  });
+    {
+      method:"POST",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        fields:{
+          Title: p1 + " vs " + p2,
+          Player1: p1,
+          Player2: p2,
+          Score1: 501,
+          Score2: 501,
+          Legs1: 0,
+          Legs2: 0,
+          LegsToWin: 3,
+          BoardId: board,
+          Turn: "p1",
+          Status: status,
+          Group: "",
+          Winner: "",
+          Round: round,
+          NextMatchId:"",
+          NextSlot:""
+        }
+      })
+    }
+  );
 
   const d = await res.json();
   return d.id;
@@ -375,17 +431,18 @@ async function linkMatch(fromId, toId, slot){
 
   await fetch(
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${fromId}/fields`,
-  {
-    method:"PATCH",
-    headers:{
-      Authorization:`Bearer ${token}`,
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({
-      NextMatchId: toId,
-      NextSlot: slot
-    })
-  });
+    {
+      method:"PATCH",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        NextMatchId: toId,
+        NextSlot: slot
+      })
+    }
+  );
 }
 
 
@@ -398,32 +455,4 @@ function getRoundName(count){
   if(count === 2) return "final";
 
   return "ko";
-}
-async function createPlayer(){
-
-  const name = document.getElementById("name").value.trim();
-  if(!name) return;
-
-  const token = await getToken();
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Players/items`,
-  {
-    method:"POST",
-    headers:{
-      Authorization:`Bearer ${token}`,
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({
-      fields:{
-        Title: name
-      }
-    })
-  });
-
-  // ✅ Eingabe leeren
-  document.getElementById("name").value = "";
-
-  // ✅ Liste neu laden
-  await loadPlayers();
 }
