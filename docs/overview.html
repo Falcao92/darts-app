@@ -1,11 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-
 <meta charset="UTF-8">
 <title>Turnier Übersicht</title>
 
-<!-- ✅ Scripts korrekt -->
 <script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/graph.js"></script>
@@ -19,23 +17,12 @@ body{
   margin:0;
 }
 
-/* =========================
-   HEADER
-========================= */
 h1{
   text-align:center;
   color:red;
-  margin:10px;
 }
 
-h2{
-  text-align:center;
-  margin:5px;
-}
-
-/* =========================
-   📺 BOARDS GRID
-========================= */
+/* BOARDS */
 #boards{
   display:grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -43,7 +30,6 @@ h2{
   padding:10px;
 }
 
-/* BOARD CARD */
 .board{
   background:#111;
   border:2px solid red;
@@ -51,86 +37,58 @@ h2{
   padding:10px;
 }
 
-/* TITLE */
-.title{
-  font-size:18px;
-  font-weight:bold;
-  margin-bottom:4px;
+/* BRACKET */
+#bracket{
+  display:flex;
+  justify-content:center;
+  gap:40px;
+  padding:20px;
 }
 
-/* CURRENT MATCH */
-.live{
-  color:#00ff00;
-  font-size:16px;
+.round{
+  display:flex;
+  flex-direction:column;
+  justify-content:space-around;
 }
 
-/* NEXT MATCH */
-.next{
-  margin-top:6px;
-  color:#ffaa00;
-  font-size:14px;
-}
-
-/* =========================
-   🧩 GROUP TABLES
-========================= */
-#groups{
-  padding:10px;
-  display:grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px,1fr));
-  gap:10px;
-}
-
-/* GROUP BOX */
-.group{
+.match{
   background:#111;
-  padding:8px;
-  border:1px solid #333;
+  padding:10px;
   border-radius:6px;
+  border:1px solid #333;
+  position:relative;
+  width:160px;
 }
 
-/* TABLE */
-table{
-  width:100%;
-  border-collapse:collapse;
-  font-size:13px;
+.match::after{
+  content:"";
+  position:absolute;
+  right:-20px;
+  top:50%;
+  width:20px;
+  height:2px;
+  background:#555;
 }
 
-th, td{
-  padding:4px;
-  text-align:center;
-  border-bottom:1px solid #333;
+.round:last-child .match::after{
+  display:none;
 }
 
-th{
-  color:#aaa;
-}
-
-/* 🥇 Platz 1 */
-tr:nth-child(2){
+.winner{
   color:#00ff00;
   font-weight:bold;
-}
-
-/* 🥈 Platz 2 */
-tr:nth-child(3){
-  color:#ffaa00;
 }
 </style>
-
 </head>
 
 <body>
 
 <h1>🎯 Turnier Übersicht</h1>
 
-<!-- 📺 BOARDS -->
 <div id="boards"></div>
 
-<h2>🧩 Gruppentabelle</h2>
-
-<!-- 🧩 TABLE -->
-<div id="groups"></div>
+<h2>🏆 Turnierbaum</h2>
+<div id="bracket"></div>
 
 </body>
 </html>
