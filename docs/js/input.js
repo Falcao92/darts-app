@@ -284,24 +284,24 @@ async function updateMatch(id, s1, s2, turn, legs1, legs2, winner){
 
   const status = winner ? "finished" : "active";
 
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${id}/fields`,
-  {
-    method:"PATCH",
-    headers:{
-      Authorization:`Bearer ${token}`,
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({
-      Score1: s1,
-      Score2: s2,
-      Turn: turn,
-      Legs1: legs1,
-      Legs2: legs2,
-      Winner: winner || "",
-      Status: status
-    })
-  );
+await fetch(
+  `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${id}/fields`,
+{
+  method:"PATCH",
+  headers:{
+    Authorization:`Bearer ${token}`,
+    "Content-Type":"application/json"
+  },
+  body:JSON.stringify({
+    Score1: s1,
+    Score2: s2,
+    Turn: turn,
+    Legs1: legs1,
+    Legs2: legs2,
+    Winner: winner || "",
+    Status: status
+  })
+});
 
   // ✅ NUR BEI MATCH ENDE
   if(winner){
