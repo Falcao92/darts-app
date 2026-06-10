@@ -9,6 +9,35 @@ window.addEventListener("DOMContentLoaded", async () => {
 
 
 // ==========================
+// Turnier Starten
+// ==========================
+
+async function startTournament(){
+
+  const useGroups = document.getElementById("useGroups").checked;
+  const boardCount = parseInt(document.getElementById("boardCount").value);
+  const groupSize = parseInt(document.getElementById("groupSize").value);
+
+  localStorage.setItem("boardCount", boardCount);
+
+  await clearMatches();
+
+  if(useGroups){
+
+    await createGroups();
+    alert("✅ Gruppenphase gestartet!");
+
+  } else {
+
+    const list = players.map(p => p.fields.Title);
+    await createKOBracket(list, boardCount);
+
+    alert("✅ KO Turnier gestartet!");
+  }
+}
+
+
+// ==========================
 // SPIELER
 // ==========================
 async function loadPlayers(){
