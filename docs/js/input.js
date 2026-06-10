@@ -9,9 +9,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   matches = await getList("Matches");
 
-  const boards = [
-    ...new Set(matches.map(m => m.fields.BoardId))
-  ];
+  const boards = [...new Set(matches.map(m => m.fields.BoardId))];
 
   const sel = document.getElementById("boardSelect");
   sel.innerHTML = "";
@@ -120,7 +118,7 @@ function addButton(value){
 
 
 // ==========================
-// INPUT FLOW
+// INPUT
 // ==========================
 function insertDart(value){
 
@@ -140,7 +138,7 @@ function insertDart(value){
 
 
 // ==========================
-// SUBMIT (FIXED!)
+// SUBMIT (FIXED)
 // ==========================
 async function submit(){
 
@@ -179,7 +177,6 @@ async function submit(){
 
       alert(f.Player1 + " gewinnt das Leg!");
 
-      // ✅ MATCH GEWINN?
       if(legs1 >= legsToWin){
 
         alert(f.Player1 + " gewinnt das MATCH!");
@@ -188,12 +185,11 @@ async function submit(){
 
       } else {
 
-        // ✅ NUR LEG RESET (kein winner!)
         await updateMatch(id, 501, 501, "p2", legs1, legs2);
       }
 
       resetInputs();
-      reloadMatch(id);
+      await reloadMatch(id);
       return;
     }
 
@@ -235,7 +231,7 @@ async function submit(){
       }
 
       resetInputs();
-      reloadMatch(id);
+      await reloadMatch(id);
       return;
     }
 
@@ -252,12 +248,12 @@ async function submit(){
   await updateMatch(id, score1, score2, turn, legs1, legs2);
 
   resetInputs();
-  reloadMatch(id);
+  await reloadMatch(id);
 }
 
 
 // ==========================
-// MATCH NEU LADEN
+// RELOAD
 // ==========================
 async function reloadMatch(id){
   matches = await getList("Matches");
@@ -267,7 +263,7 @@ async function reloadMatch(id){
 
 
 // ==========================
-// RESET INPUTS
+// RESET
 // ==========================
 function resetInputs(){
   d1.value = "";
@@ -278,13 +274,11 @@ function resetInputs(){
 
 
 // ==========================
-// UPDATE MATCH + AUTO NEXT
+// UPDATE MATCH
 // ==========================
 async function updateMatch(id, s1, s2, turn, legs1, legs2, winner){
 
   const token = await getToken();
-  const matches = await getList("Matches");
-  const current = matches.find(m => m.id === id);
 
   let status = winner ? "finished" : "active";
 
@@ -305,17 +299,16 @@ async function updateMatch(id, s1, s2, turn, legs1, legs2, winner){
       Winner: winner || "",
       Status: status
     })
-  ;
+  );
 
-  // ✅ NUR BEI MATCH ENDE → NEXT STARTEN
   if(winner){
-    await activateNextMatch(current.fields.BoardId);
+    await activateNextMatch(currentMatch.fields.BoardId);
   }
 }
 
 
 // ==========================
-// AUTO NEXT MATCH
+// AUTO NEXT
 // ==========================
 async function activateNextMatch(boardId){
 
