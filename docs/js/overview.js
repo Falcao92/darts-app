@@ -19,7 +19,7 @@ async function update(){
 
 
 // ===================================
-// 📺 BOARDS (OHNE ALT-DATEN)
+// 📺 BOARDS
 // ===================================
 function renderBoards(matches){
 
@@ -31,19 +31,16 @@ function renderBoards(matches){
 
   for(let boardId = 1; boardId <= BOARD_COUNT; boardId++){
 
-    // ✅ NUR Turnier-Matches
     const boardMatches = matches.filter(m =>
       m.fields &&
       m.fields.BoardId == boardId &&
       m.fields.Round === "group"
     );
 
-    // ✅ LIVE MATCH
     const live = boardMatches.find(m =>
       m.fields.Status === "active"
     );
 
-    // ✅ NUR WAITING (richtige Queue!)
     const queue = boardMatches.filter(m =>
       m.fields.Status === "waiting"
     );
@@ -81,7 +78,7 @@ function renderBoards(matches){
 
 
 // ===================================
-// 🧩 GRUPPEN (FIXED!)
+// 🧩 GROUP TABLE WITH STATS
 // ===================================
 function renderGroups(matches){
 
@@ -89,43 +86,40 @@ function renderGroups(matches){
 
   let groups = {};
 
-  // ✅ Tabellenstruktur bauen
   matches.forEach(m => {
 
     const f = m.fields;
 
-    // 👉 nur Gruppenspiele
     if(!f.Group || f.Round !== "group") return;
 
     if(!groups[f.Group]){
       groups[f.Group] = {};
     }
 
-    // Spieler initialisieren
     if(!groups[f.Group][f.Player1]){
-      groups[f.Group][f.Player1] = {
-        name: f.Player1,
-        played: 0,
-        wins: 0,
-        points: 0
-      };
+      groups[f.Group][f.Player1] = createStats(f.Player1);
     }
 
     if(!groups[f.Group][f.Player2]){
-      groups[f.Group][f.Player2] = {
-        name: f.Player2,
-        played: 0,
-        wins: 0,
-        points: 0
-      };
+      groups[f.Group][f.Player2] = createStats(f.Player2);
     }
 
-    // ✅ nur fertige Spiele zählen
     if(f.Status === "finished"){
 
-      groups[f.Group][f.Player1].played++;
-      groups[f.Group][f.Player2].played++;
+      const p1 = groups[f.Group][f.Player1];
+      const p2 = groups[f.Group][f.Player2];
 
+      p1.played++;
+      p2.played++;
+
+      // ✅ Legs
+      p1.legsFor += f.Legs1 || 0;
+      p1.legsAgainst += f.Legs2 || 0;
+
+      p2.legsFor += f.Legs2 || 0;
+      p2.legsAgainst += f.Legs1 || 0;
+
+      // ✅ Win
       if(f.Winner){
         groups[f.Group][f.Winner].wins++;
         groups[f.Group][f.Winner].points += 2;
@@ -133,36 +127,74 @@ function renderGroups(matches){
     }
   });
 
+  buildTables(groups, div);
+}
 
-  // ✅ HTML bauen
+
+// ==========================
+// PLAYER TEMPLATE
+// ==========================
+function createStats(name){
+  return {
+    name,
+    played: 0,
+    wins: 0,
+    points: 0,
+    legsFor: 0,
+    legsAgainst: 0
+  };
+}
+
+
+// ==========================
+// BUILD TABLES
+// ==========================
+function buildTables(groups, div){
+
   let html = "";
 
   Object.keys(groups).sort().forEach(group => {
 
     let players = Object.values(groups[group]);
 
-    // ✅ sortieren nach Punkten
-    players.sort((a,b) => b.points - a.points);
+    players.forEach(p => {
+      p.diff = p.legsFor - p.legsAgainst;
+
+      // einfacher Average
+      p.avg = p.played > 0
+        ? (p.legsFor * 501) / (p.played * 15)
+        : 0;
+    });
+
+    players.sort((a,b) =>
+      b.points - a.points ||
+      b.diff - a.diff
+    );
 
     html += `
       <div class="group">
         <b>Gruppe ${group}</b>
-        <table style="width:100%; margin-top:5px;">
+        <table>
           <tr>
             <th>Name</th>
             <th>S</th>
             <th>W</th>
             <th>P</th>
+            <th>Diff</th>
+            <th>Avg</th>
           </tr>
     `;
 
     players.forEach(p => {
+
       html += `
         <tr>
           <td>${p.name}</td>
           <td>${p.played}</td>
           <td>${p.wins}</td>
           <td>${p.points}</td>
+          <td>${p.diff}</td>
+          <td>${p.avg.toFixed(1)}</td>
         </tr>
       `;
     });
