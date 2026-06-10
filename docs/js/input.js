@@ -65,8 +65,6 @@ function updateUI(){
 
 
 // ==========================
-// HELPER
-// ==========================
 function set(id, val){
   const el = document.getElementById(id);
   if(el) el.innerHTML = val;
@@ -92,36 +90,7 @@ function isDouble(v){
 
 
 // ==========================
-// BUTTONS
-// ==========================
-function createButtons(){
-
-  const div = document.getElementById("buttons");
-  div.innerHTML = "";
-
-  for(let i = 1; i <= 20; i++){
-    addButton(i);
-    addButton("D"+i);
-    addButton("T"+i);
-  }
-
-  addButton("25");
-  addButton("BULL");
-}
-
-function addButton(value){
-
-  const btn = document.createElement("button");
-
-  btn.innerText = value;
-  btn.onclick = () => insertDart(value);
-
-  document.getElementById("buttons").appendChild(btn);
-}
-
-
-// ==========================
-// INPUT FLOW
+// INPUT
 // ==========================
 function insertDart(value){
 
@@ -162,8 +131,6 @@ async function submit(){
   let turn = f.Turn;
 
   const lastDart = d3.value || d2.value || d1.value;
-
-  // ✅ FIX
   const legsToWin = parseInt(f.LegsToWin) || 3;
 
 
@@ -181,11 +148,8 @@ async function submit(){
       legs1++;
 
       if(Number(legs1) >= legsToWin){
-
         await updateMatch(id, 501, 501, "p2", legs1, legs2, f.Player1);
-
       } else {
-
         await updateMatch(id, 501, 501, "p2", legs1, legs2);
       }
 
@@ -194,9 +158,6 @@ async function submit(){
       return;
     }
 
-    else if(ns === 0){
-      turn = "p2";
-    }
     else{
       score1 = ns;
       turn = "p2";
@@ -217,11 +178,8 @@ async function submit(){
       legs2++;
 
       if(Number(legs2) >= legsToWin){
-
         await updateMatch(id, 501, 501, "p1", legs1, legs2, f.Player2);
-
       } else {
-
         await updateMatch(id, 501, 501, "p1", legs1, legs2);
       }
 
@@ -230,9 +188,6 @@ async function submit(){
       return;
     }
 
-    else if(ns === 0){
-      turn = "p1";
-    }
     else{
       score2 = ns;
       turn = "p1";
@@ -246,8 +201,6 @@ async function submit(){
 }
 
 
-// ==========================
-// UPDATE MATCH
 // ==========================
 async function updateMatch(id, s1, s2, turn, legs1, legs2, winner){
 
@@ -275,92 +228,48 @@ async function updateMatch(id, s1, s2, turn, legs1, legs2, winner){
     }
   );
 
-if(winner){
-
-  // ✅ warten bis SharePoint fertig
-  await refreshMatches();
-
-  // ✅ dann prüfen
-  await checkAndStartKO();
-}
-
+  if(winner){
+    await refreshMatches();
+    await checkAndStartKO();
+  }
 }
 
 
 // ==========================
-// MATCH REFRESH
-// ==========================
-async function reloadMatch(id){
-  await refreshMatches();
-  currentMatch = matches.find(m => m.id === id);
-  updateUI();
-}
-
-async function refreshMatches(){
-  matches = await getList("Matches");
-}
-
-
-// ==========================
-// RESET INPUTS
-// ==========================
-function resetInputs(){
-  d1.value = "";
-  d2.value = "";
-  d3.value = "";
-  currentInput = 1;
-}
-
-
-// ==========================
-// ✅ KO AUTO START (FIXED)
+// KO AUTO
 // ==========================
 async function checkAndStartKO(){
 
-  await refreshMatches(); // ✅ sicher aktualisiert
-
   const groupMatches = matches.filter(m =>
-    m.fields && m.fields.Round === "group"
+    m.fields.Round === "group"
   );
 
-  // ❗ falls keine Gruppenphase
   if(groupMatches.length === 0) return;
 
-  // ✅ alle fertig?
   const stillOpen = groupMatches.some(m =>
     m.fields.Status !== "finished"
   );
 
-  if(stillOpen){
-    console.log("⏳ Gruppen noch nicht fertig");
-    return;
-  }
+  if(stillOpen) return;
 
-  // ✅ KO schon da?
   const hasKO = matches.some(m =>
     m.fields.Round !== "group"
   );
 
-  if(hasKO){
-    console.log("✅ KO existiert bereits");
-    return;
-  }
+  if(hasKO) return;
 
-  console.log("🔥 STARTE KO PHASE");
-
-  await createKOFromFinishedGroups(matches);
+  await createKOFromFinishedGroups();
 }
 
 
-
-async function createKOFromFinishedGroups(matches){
+// ==========================
+async function createKOFromFinishedGroups(){
 
   let groups = {};
 
   matches.forEach(m => {
 
     const f = m.fields;
-
     if(f.Round !== "group") return;
 
     if(!groups[f.Group]) groups[f.Group] = {};
@@ -388,4 +297,86 @@ async function createKOFromFinishedGroups(matches){
   const boardCount = parseInt(localStorage.getItem("boardCount")) || 1;
 
   await createKOBracket(qualified, boardCount);
+}
+
+
+// ==========================
+// ✅ KO BUILDER (NEU)
+// ==========================
+async function createKOBracket(players, boardCount){
+
+  players.sort(()=>Math.random()-0.5);
+
+  let round = getRoundName(players.length);
+
+  let board = 1;
+
+  for(let i=0;i<players.length;i+=2){
+
+    const token = await getToken();
+
+    await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
+    {
+      method:"POST",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        fields:{
+          Title: players[i] + " vs " + players[i+1],
+          Player1: players[i],
+          Player2: players[i+1],
+          Score1: 501,
+          Score2: 501,
+          Legs1: 0,
+          Legs2: 0,
+          LegsToWin: 3,
+          BoardId: String(board),
+          Turn: "p1",
+          Status: "active",
+          Group: "",
+          Winner: "",
+          Round: round
+        }
+      })
+    });
+
+    board++;
+    if(board > boardCount) board = 1;
+  }
+
+  await refreshMatches();
+}
+
+
+// ==========================
+function getRoundName(count){
+
+  if(count === 16) return "last16";
+  if(count === 8) return "quarter";
+  if(count === 4) return "semi";
+  if(count === 2) return "final";
+
+  return "ko";
+}
+
+
+// ==========================
+async function reloadMatch(id){
+  await refreshMatches();
+  currentMatch = matches.find(m => m.id === id);
+  updateUI();
+}
+
+async function refreshMatches(){
+  matches = await getList("Matches");
+}
+
+function resetInputs(){
+  d1.value = "";
+  d2.value = "";
+  d3.value = "";
+  currentInput = 1;
 }
