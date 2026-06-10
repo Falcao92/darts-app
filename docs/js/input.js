@@ -363,29 +363,48 @@ async function startKO(){
   await refreshMatches();
 
   const hasKO = matches.some(m => m.fields.Round === "semi");
-  if(hasKO){
-    console.log("KO existiert bereits");
-    return;
-  }
+  if(hasKO) return;
 
-  let winners = matches
+  let groups = {};
+
+  // ✅ Spieler pro Gruppe sammeln
+  matches
     .filter(m => m.fields.Round === "group")
-    .map(m => m.fields.Winner)
-    .filter(Boolean);
+    .forEach(m => {
 
-  winners = [...new Set(winners)];
+      const f = m.fields;
 
-  console.log("Winners:", winners);
+      if(!groups[f.Group]) groups[f.Group] = {};
 
-  if(winners.length < 4){
-    console.log("⛔ nicht genug Spieler");
-    return;
-  }
+      if(!groups[f.Group][f.Player1]) groups[f.Group][f.Player1] = 0;
+      if(!groups[f.Group][f.Player2]) groups[f.Group][f.Player2] = 0;
 
-  await create(winners[0], winners[1], "semi", 1);
-  await create(winners[2], winners[3], "semi", 2);
+      if(f.Winner){
+        groups[f.Group][f.Winner] += 2;
+      }
+    });
 
-  console.log("✅ KO erstellt");
+  let players = [];
+
+  // ✅ Top 2 pro Gruppe holen
+  Object.values(groups).forEach(group => {
+
+    const sorted = Object.entries(group)
+      .sort((a,b) => b[1] - a[1]);
+
+    players.push(sorted[0][0]); // Platz 1
+    if(sorted[1]) players.push(sorted[1][0]); // Platz 2
+  });
+
+  console.log("✅ KO Spieler:", players);
+
+  if(players.length < 2) return;
+
+  // ✅ Halbfinale
+  await create(players[0], players[1], "semi", 1);
+  await create(players[2], players[3], "semi", 2);
+
+  console.log("🔥 KO erstellt");
 }
 
 
