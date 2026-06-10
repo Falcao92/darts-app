@@ -5,7 +5,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   update();
 
-  setInterval(update, 3000); // Live Refresh
+  setInterval(update, 3000);
 });
 
 
@@ -19,33 +19,33 @@ async function update(){
 
 
 // ===================================
-// 📺 BOARDS (KORREKT!)
+// 📺 BOARDS (OHNE ALT-DATEN)
 // ===================================
 function renderBoards(matches){
 
   const div = document.getElementById("boards");
 
-  // ✅ Board Anzahl aus Admin
   const BOARD_COUNT = parseInt(localStorage.getItem("boardCount")) || 5;
 
   let html = "";
 
   for(let boardId = 1; boardId <= BOARD_COUNT; boardId++){
 
+    // ✅ NUR Turnier-Matches
     const boardMatches = matches.filter(m =>
       m.fields &&
-      m.fields.BoardId == boardId
+      m.fields.BoardId == boardId &&
+      m.fields.Round === "group"
     );
 
-    // ✅ aktuelles Spiel
+    // ✅ LIVE MATCH
     const live = boardMatches.find(m =>
       m.fields.Status === "active"
     );
 
-    // ✅ Warteschlange (noch nicht gespielt)
+    // ✅ NUR WAITING (richtige Queue!)
     const queue = boardMatches.filter(m =>
-      m.fields.Status !== "active" &&
-      m.fields.Status !== "finished"
+      m.fields.Status === "waiting"
     );
 
     const next = queue[0];
@@ -53,7 +53,6 @@ function renderBoards(matches){
     html += `<div class="board">`;
     html += `<div class="title">Board ${boardId}</div>`;
 
-    // 🎯 LIVE
     if(live){
       html += `
         <div class="live">
@@ -65,7 +64,6 @@ function renderBoards(matches){
       html += `<div>frei</div>`;
     }
 
-    // ⏭ NEXT
     if(next){
       html += `
         <div class="next">
@@ -83,7 +81,7 @@ function renderBoards(matches){
 
 
 // ===================================
-// 🧩 GRUPPEN KOMPAKT
+// 🧩 GRUPPEN (FIXED!)
 // ===================================
 function renderGroups(matches){
 
@@ -95,22 +93,25 @@ function renderGroups(matches){
 
     const f = m.fields;
 
-    if(f.Group){
-      if(!groups[f.Group]) groups[f.Group] = [];
-      groups[f.Group].push(f.Player1, f.Player2);
+    // ✅ NUR Gruppenspiele
+    if(!f.Group || f.Round !== "group") return;
+
+    if(!groups[f.Group]){
+      groups[f.Group] = new Set();
     }
+
+    groups[f.Group].add(f.Player1);
+    groups[f.Group].add(f.Player2);
   });
 
   let html = "";
 
-  Object.keys(groups).forEach(g => {
-
-    const players = [...new Set(groups[g])];
+  Object.keys(groups).sort().forEach(g => {
 
     html += `
       <div class="group">
         <b>Gruppe ${g}</b><br>
-        ${players.join("<br>")}
+        ${[...groups[g]].join("<br>")}
       </div>
     `;
   });
