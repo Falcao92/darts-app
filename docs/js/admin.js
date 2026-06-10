@@ -1,166 +1,25 @@
 let players = [];
 
 window.addEventListener("DOMContentLoaded", async () => {
-
   const ok = await ensureLogin();
   if (!ok) return;
 
   await loadPlayers();
-  createBoards();
-  await loadMatches();
-
 });
 
 
-// ✅ Spieler laden
+// ==========================
+// SPIELER
+// ==========================
 async function loadPlayers(){
-
   players = await getList("Players");
-
-  const div = document.getElementById("players");
-  const p1 = document.getElementById("p1");
-  const p2 = document.getElementById("p2");
-
-  div.innerHTML = "";
-  p1.innerHTML = "";
-  p2.innerHTML = "";
-
-  players.forEach(p => {
-
-    const name = p.fields.Title;
-
-    div.innerHTML += `
-      <div class="player">
-        ${name}
-        <button onclick="deletePlayer('${p.id}')">❌</button>
-      </div>
-    `;
-
-    p1.innerHTML += `<option>${name}</option>`;
-    p2.innerHTML += `<option>${name}</option>`;
-  });
 }
 
 
-// ✅ Spieler erstellen
-async function createPlayer(){
-
-  const name = document.getElementById("name").value;
-  if (!name) return;
-
-  const token = await getToken();
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Players/items`,
-  {
-    method:"POST",
-    headers:{
-      Authorization:`Bearer ${token}`,
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({ fields:{ Title:name } })
-  });
-
-  document.getElementById("name").value = "";
-  loadPlayers();
-}
-
-
-// ✅ Spieler löschen
-async function deletePlayer(id){
-
-  const token = await getToken();
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Players/items/${id}`,
-  {
-    method:"DELETE",
-    headers:{ Authorization:`Bearer ${token}` }
-  });
-
-  loadPlayers();
-}
-
-
-// ✅ Boards
-function createBoards(){
-
-  const sel = document.getElementById("board");
-  sel.innerHTML = "";
-
-  for(let i=1;i<=6;i++){
-    sel.innerHTML += `<option value="${i}">Board ${i}</option>`;
-  }
-}
-
-
-// ✅ Trainingsspiel
-async function createTraining(){
-
-  const p1 = document.getElementById("p1").value;
-  const p2 = document.getElementById("p2").value;
-  const board = document.getElementById("board").value;
-
-  if(p1 === p2){
-    alert("Spieler müssen unterschiedlich sein!");
-    return;
-  }
-
-  const matches = await getList("Matches");
-
-  const exists = matches.find(m =>
-    m.fields.BoardId == board &&
-    m.fields.Status === "active"
-  );
-
-  if(exists){
-    alert("Board ist bereits belegt!");
-    return;
-  }
-
-  await createMatch(p1, p2, board);
-
-  await loadMatches();
-}
-
-
-// ✅ Matches laden (NUR aktive!)
-async function loadMatches(){
-
-  const matches = await getList("Matches");
-  const div = document.getElementById("activeMatches");
-
-  div.innerHTML = "<h3>Aktuelle Spiele</h3>";
-
-  const active = matches.filter(m =>
-    m.fields &&
-    m.fields.Status === "active" &&
-    m.fields.Player1 &&
-    m.fields.Player2 &&
-    m.fields.BoardId
-  );
-
-  if(active.length === 0){
-    div.innerHTML += "<p>Keine aktiven Spiele</p>";
-    return;
-  }
-
-  active.forEach(m => {
-
-    const f = m.fields;
-
-    div.innerHTML += `
-      <div>
-        Board ${f.BoardId}: ${f.Player1} vs ${f.Player2}
-        <button onclick="finishMatch('${m.id}')">✅</button>
-      </div>
-    `;
-  });
-}
-
-
-// ✅ Match erstellen
-async function createMatch(p1, p2, board){
+// ==========================
+// MATCH ERSTELLEN
+// ==========================
+async function createMatch(p1, p2, board, group = "", round = "group"){
 
   const token = await getToken();
 
@@ -182,71 +41,209 @@ async function createMatch(p1, p2, board){
         Legs1: 0,
         Legs2: 0,
         LegsToWin: 3,
-        BoardId: parseInt(board),
+        BoardId: board,
         Turn: "p1",
-        Status: "active"   // ✅ wichtig
+        Status: "active",
+        Group: group,
+        Winner: "",
+        Round: round
       }
     })
   });
 }
 
 
-// ✅ Match beenden
-async function finishMatch(id){
-
-  const token = await getToken();
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${id}/fields`,
-  {
-    method:"PATCH",
-    headers:{
-      Authorization:`Bearer ${token}`,
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({
-      Status: "finished"
-    })
-  });
-
-  loadMatches();
-}
-
-
-// ✅ KO
-async function createKO(){
-
-  const list = players.map(p => p.fields.Title);
-
-  list.sort(() => Math.random() - 0.5);
-
-  for(let i=0;i<list.length;i+=2){
-    await createMatch(list[i], list[i+1] || "Freilos", i/2+1);
-  }
-
-  loadMatches();
-}
-
-
-// ✅ Gruppen
+// ==========================
+// GRUPPEN ERSTELLEN
+// ==========================
 async function createGroups(){
 
-  const list = players.map(p => p.fields.Title);
+  const groupSize = parseInt(document.getElementById("groupSize").value);
+  const boardCount = parseInt(document.getElementById("boardCount").value);
+
+  let list = players.map(p => p.fields.Title);
 
   list.sort(() => Math.random() - 0.5);
+
+  let groups = [];
+
+  for(let i=0;i<list.length;i+=groupSize){
+    groups.push(list.slice(i, i+groupSize));
+  }
+
+  renderGroups(groups);
 
   let board = 1;
 
-  for(let i=0;i<list.length;i+=3){
+  for(let g=0; g<groups.length; g++){
 
-    const group = list.slice(i, i+3);
+    const groupId = String.fromCharCode(65 + g); // A, B, C...
+
+    let group = groups[g];
 
     for(let a=0;a<group.length;a++){
       for(let b=a+1;b<group.length;b++){
-        await createMatch(group[a], group[b], board++);
+
+        await createMatch(
+          group[a],
+          group[b],
+          board,
+          groupId,
+          "group"
+        );
+
+        board++;
+
+        if(board > boardCount) board = 1;
       }
     }
   }
+}
 
-  loadMatches();
+
+// ==========================
+// GRUPPEN ANZEIGEN
+// ==========================
+function renderGroups(groups){
+
+  const div = document.getElementById("groupsView");
+
+  let html = "<h3>Gruppen</h3>";
+
+  groups.forEach((g, i) => {
+
+    const groupId = String.fromCharCode(65 + i);
+
+    html += `<div><b>Gruppe ${groupId}</b><br>${g.join("<br>")}</div><br>`;
+  });
+
+  div.innerHTML = html;
+}
+
+
+// ==========================
+// TABELLE BERECHNEN
+// ==========================
+async function calculateGroups(){
+
+  const matches = await getList("Matches");
+
+  const finished = matches.filter(m =>
+    m.fields &&
+    m.fields.Round === "group" &&
+    m.fields.Winner
+  );
+
+  let table = {};
+
+  finished.forEach(m => {
+
+    const f = m.fields;
+
+    if(!table[f.Group]) table[f.Group] = {};
+
+    if(!table[f.Group][f.Player1]) table[f.Group][f.Player1] = 0;
+    if(!table[f.Group][f.Player2]) table[f.Group][f.Player2] = 0;
+
+    table[f.Group][f.Winner] += 2;
+  });
+
+  renderTable(table);
+
+  return table;
+}
+
+
+// ==========================
+// TABELLE ANZEIGEN
+// ==========================
+function renderTable(table){
+
+  const div = document.getElementById("groupsView");
+
+  let html = "<h3>Gruppentabelle</h3>";
+
+  Object.keys(table).forEach(group => {
+
+    let sorted = Object.entries(table[group])
+      .sort((a,b)=>b[1]-a[1]);
+
+    html += `<div><b>Gruppe ${group}</b><br>`;
+
+    sorted.forEach(p => {
+      html += `${p[0]} - ${p[1]} Punkte<br>`;
+    });
+
+    html += "</div><br>";
+  });
+
+  div.innerHTML = html;
+}
+
+
+// ==========================
+// KO PHASE STARTEN
+// ==========================
+async function startKO(){
+
+  const boardCount = parseInt(document.getElementById("boardCount").value);
+
+  const table = await calculateGroups();
+
+  let qualified = [];
+
+  // 👉 Top 2 jeder Gruppe
+  Object.values(table).forEach(group => {
+
+    const sorted = Object.entries(group)
+      .sort((a,b)=>b[1]-a[1]);
+
+    qualified.push(sorted[0][0]);
+
+    if(sorted[1]) qualified.push(sorted[1][0]);
+  });
+
+  createKORound(qualified, boardCount);
+}
+
+
+// ==========================
+// KO RUNDE ERZEUGEN
+// ==========================
+async function createKORound(players, boardCount){
+
+  players.sort(()=>Math.random()-0.5);
+
+  let board = 1;
+
+  let roundName = getRoundName(players.length);
+
+  for(let i=0;i<players.length;i+=2){
+
+    await createMatch(
+      players[i],
+      players[i+1],
+      board,
+      "",
+      roundName
+    );
+
+    board++;
+
+    if(board > boardCount) board = 1;
+  }
+}
+
+
+// ==========================
+// RUNDE BENENNEN
+// ==========================
+function getRoundName(count){
+
+  if(count === 16) return "last16";
+  if(count === 8) return "quarter";
+  if(count === 4) return "semi";
+  if(count === 2) return "final";
+
+  return "ko";
 }
