@@ -2,6 +2,7 @@
 <html>
 <head>
 
+<meta charset="UTF-8">
 <title>Turnier Übersicht</title>
 
 <script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
@@ -15,7 +16,6 @@ body{
   color:white;
   font-family:Arial;
   margin:0;
-  padding:0;
 }
 
 h1{
@@ -24,39 +24,43 @@ h1{
   margin:10px;
 }
 
-/* 📺 BOARD GRID */
+/* ✅ BOARD GRID */
 #boards{
   display:grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px,1fr));
-  gap:10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap:12px;
   padding:10px;
 }
 
-/* 📦 BOARD KACHEL */
+/* ✅ BOARD CARD */
 .board{
   background:#111;
-  padding:10px;
   border:2px solid red;
   border-radius:10px;
+  padding:10px;
 }
 
 .title{
+  font-size:18px;
   font-weight:bold;
-  margin-bottom:5px;
+  margin-bottom:8px;
+  color:#fff;
 }
 
-/* LIVE */
+/* ✅ LIVE */
 .live{
   color:#00ff00;
+  font-size:16px;
 }
 
-/* NEXT */
+/* ✅ NEXT */
 .next{
+  margin-top:8px;
   color:#ffaa00;
   font-size:14px;
 }
 
-/* Gruppen kompakt */
+/* ✅ Gruppen kompakt */
 #groups{
   padding:10px;
   display:grid;
@@ -71,7 +75,6 @@ h1{
   border-radius:6px;
   font-size:14px;
 }
-
 </style>
 
 </head>
@@ -82,7 +85,7 @@ h1{
 
 <div id="boards"></div>
 
-<h2 style="text-align:center">Gruppen</h2>
+<h2 style="text-align:center;">Gruppen</h2>
 <div id="groups"></div>
 
 </body>
