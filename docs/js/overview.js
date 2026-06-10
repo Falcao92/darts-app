@@ -84,50 +84,113 @@ function renderGroups(matches){
 
   const div = document.getElementById("groups");
 
-  let groups = {};
+  // ✅ gespeicherte Gruppen laden
+  const groups = JSON.parse(localStorage.getItem("groups") || "[]");
 
-  matches.forEach(m => {
+  if(groups.length === 0){
+    div.innerHTML = "<p>Keine Gruppen</p>";
+    return;
+  }
 
-    const f = m.fields;
+  let html = "";
 
-    if(!f.Group || f.Round !== "group") return;
+  groups.forEach((groupArr, index) => {
 
-    if(!groups[f.Group]){
-      groups[f.Group] = {};
-    }
+    const groupId = String.fromCharCode(65 + index);
 
-    if(!groups[f.Group][f.Player1]){
-      groups[f.Group][f.Player1] = createStats(f.Player1);
-    }
+    // ✅ Stats nur für diese Gruppe
+    let stats = {};
 
-    if(!groups[f.Group][f.Player2]){
-      groups[f.Group][f.Player2] = createStats(f.Player2);
-    }
+    groupArr.forEach(name => {
+      stats[name] = {
+        name,
+        played: 0,
+        wins: 0,
+        points: 0,
+        legsFor: 0,
+        legsAgainst: 0
+      };
+    });
 
-    if(f.Status === "finished"){
+    // ✅ Matches dieser Gruppe berechnen
+    matches.forEach(m => {
 
-      const p1 = groups[f.Group][f.Player1];
-      const p2 = groups[f.Group][f.Player2];
+      const f = m.fields;
 
-      p1.played++;
-      p2.played++;
+      if(f.Group !== groupId || f.Round !== "group") return;
 
-      // ✅ Legs
-      p1.legsFor += f.Legs1 || 0;
-      p1.legsAgainst += f.Legs2 || 0;
+      if(f.Status === "finished"){
 
-      p2.legsFor += f.Legs2 || 0;
-      p2.legsAgainst += f.Legs1 || 0;
+        const p1 = stats[f.Player1];
+        const p2 = stats[f.Player2];
 
-      // ✅ Win
-      if(f.Winner){
-        groups[f.Group][f.Winner].wins++;
-        groups[f.Group][f.Winner].points += 2;
+        if(!p1 || !p2) return;
+
+        p1.played++;
+        p2.played++;
+
+        p1.legsFor += f.Legs1 || 0;
+        p1.legsAgainst += f.Legs2 || 0;
+
+        p2.legsFor += f.Legs2 || 0;
+        p2.legsAgainst += f.Legs1 || 0;
+
+        if(f.Winner){
+          stats[f.Winner].wins++;
+          stats[f.Winner].points += 2;
+        }
       }
-    }
+    });
+
+    // ✅ umwandeln → array
+    let players = Object.values(stats);
+
+    // ✅ berechnen
+    players.forEach(p => {
+      p.diff = p.legsFor - p.legsAgainst;
+      p.avg = p.played > 0
+        ? (p.legsFor * 501) / (p.played * 15)
+        : 0;
+    });
+
+    // ✅ sortieren
+    players.sort((a,b)=>
+      b.points - a.points ||
+      b.diff - a.diff
+    );
+
+    html += `
+      <div class="group">
+        <b>Gruppe ${groupId}</b>
+        <table>
+          <tr>
+            <th>Name</th>
+            <th>S</th>
+            <th>W</th>
+            <th>P</th>
+            <th>Diff</th>
+            <th>Avg</th>
+          </tr>
+    `;
+
+    players.forEach(p => {
+
+      html += `
+        <tr>
+          <td>${p.name}</td>
+          <td>${p.played}</td>
+          <td>${p.wins}</td>
+          <td>${p.points}</td>
+          <td>${p.diff}</td>
+          <td>${p.avg.toFixed(1)}</td>
+        </tr>
+      `;
+    });
+
+    html += "</table></div>";
   });
 
-  buildTables(groups, div);
+  div.innerHTML = html;
 }
 
 
