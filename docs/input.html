@@ -2,12 +2,15 @@
 <html>
 <head>
 
+<meta charset="UTF-8">
+<title>Punkte Eingabe</title>
+
 <script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/graph.js"></script>
-   <script src="js/admin.js"></script>
+
+<!-- ✅ WICHTIG: KEIN admin.js -->
 <script src="js/input.js"></script>
- 
 
 <style>
 body{
@@ -24,12 +27,13 @@ select, input{
 }
 
 button{
-  font-size:20px;
-  padding:10px;
-  margin-top:10px;
+  font-size:18px;
+  padding:8px;
+  margin:5px;
   background:red;
   color:white;
   border:none;
+  border-radius:5px;
 }
 
 #players{
@@ -46,31 +50,23 @@ button{
   color:yellow;
 }
 
-.checkout{
-  margin-top:10px;
-  font-size:22px;
-  color:lightgreen;
-}
-  #buttons {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin-top: 20px;
+#buttons{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  margin-top:20px;
 }
 
-.btn {
-  width: 70px;
-  height: 50px;
-  margin: 5px;
-  font-size: 16px;
-  background: #222;
-  color: white;
-  border: 2px solid red;
-  border-radius: 6px;
+.btn{
+  width:65px;
+  height:45px;
+  margin:3px;
+  background:#222;
+  border:1px solid red;
 }
 
-.btn:hover {
-  background: red;
+.btn:hover{
+  background:red;
 }
 </style>
 
@@ -88,17 +84,13 @@ button{
 <div id="legs"></div>
 <div class="turn" id="turn"></div>
 
-<div class="checkout" id="checkout"></div>
-  
-<div id="legs"></div>
-
-
 <br>
 
-<input id="d1" placeholder="T20">
+<input id="d1">
 <input id="d2">
 <input id="d3">
-<h2>Darts</h2>
+
+<h3>Darts</h3>
 
 <div id="buttons"></div>
 
