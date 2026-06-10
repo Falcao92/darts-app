@@ -12,6 +12,44 @@ window.addEventListener("DOMContentLoaded", async () => {
   });
 });
 
+// ==========================
+// 🚀 training
+// ==========================
+
+async function createTrainingMatch(){
+
+  const p1 = document.getElementById("tp1").value;
+  const p2 = document.getElementById("tp2").value;
+  const board = document.getElementById("tboard").value;
+
+  const token = await getToken();
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/TrainingMatches/items`,
+  {
+    method:"POST",
+    headers:{
+      Authorization:`Bearer ${token}`,
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+      fields:{
+        Title: p1 + " vs " + p2,
+        Player1: p1,
+        Player2: p2,
+        Score1: 501,
+        Score2: 501,
+        Legs1: 0,
+        Legs2: 0,
+        Status: "active",
+        BoardId: board,
+        Date: new Date().toISOString()
+      }
+    })
+  });
+
+  alert("✅ Trainingsspiel gestartet");
+}
 
 // ==========================
 // 🚀 TURNIER START
