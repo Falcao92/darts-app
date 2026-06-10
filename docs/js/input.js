@@ -345,12 +345,17 @@ async function activateNextMatch(boardId){
 async function advanceWinner(match){
 
   const token = await getToken();
-
   const f = match.fields;
 
   if(!f.NextMatchId) return;
 
-  const slot = f.NextSlot === "p2" ? "Player2" : "Player1";
+  let body = {};
+
+  if(f.NextSlot === "p2"){
+    body.Player2 = f.Winner;
+  } else {
+    body.Player1 = f.Winner;
+  }
 
   await fetch(
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${f.NextMatchId}/fields`,
@@ -360,8 +365,7 @@ async function advanceWinner(match){
       Authorization:`Bearer ${token}`,
       "Content-Type":"application/json"
     },
-    body:JSON.stringify({
-      [slot]: f.Winner
-    })
+    body:JSON.stringify(body)
   });
 }
+
