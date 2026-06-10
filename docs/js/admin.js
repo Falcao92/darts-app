@@ -12,7 +12,37 @@ window.addEventListener("DOMContentLoaded", async () => {
 // SPIELER
 // ==========================
 async function loadPlayers(){
+
   players = await getList("Players");
+
+  console.log("Geladene Spieler:", players); // Debug
+
+  const div = document.getElementById("players");
+  const p1 = document.getElementById("p1");
+  const p2 = document.getElementById("p2");
+
+  div.innerHTML = "";
+  p1.innerHTML = "";
+  p2.innerHTML = "";
+
+  players.forEach(p => {
+
+    const name = p.fields?.Title;
+
+    if(!name) return;
+
+    // ✅ Anzeige Liste
+    div.innerHTML += `
+      <div class="player">
+        ${name}
+        <button onclick="deletePlayer('${p.id}')">❌</button>
+      </div>
+    `;
+
+    // ✅ Dropdown
+    p1.innerHTML += `<option>${name}</option>`;
+    p2.innerHTML += `<option>${name}</option>`;
+  });
 }
 
 
