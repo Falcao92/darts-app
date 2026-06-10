@@ -1,300 +1,144 @@
-let players = [];
-
-window.addEventListener("DOMContentLoaded", async () => {
-
-  const ok = await ensureLogin();
-  if (!ok) return;
-
-  await loadPlayers();
-  createBoards();
-  await loadMatches();
-
-});
-
-
-// ✅ SPIELER LADEN
-async function loadPlayers(){
-
-  players = await getList("Players");
-
-  const div = document.getElementById("players");
-  const p1 = document.getElementById("p1");
-  const p2 = document.getElementById("p2");
-
-  div.innerHTML = "";
-  p1.innerHTML = "";
-  p2.innerHTML = "";
-
-  players.forEach(p => {
-
-    const name = p.fields.Title;
-
-    div.innerHTML += `
-      <div class="player">
-        ${name}
-        <button onclick="deletePlayer('${p.id}')">❌</button>
-      </div>
-    `;
-
-    p1.innerHTML += `<option>${name}</option>`;
-    p2.innerHTML += `<option>${name}</option>`;
-  });
-}
-
-
-// ✅ SPIELER ERSTELLEN
-async function createPlayer(){
-
-  const name = document.getElementById("name").value;
-  if (!name) return;
-
-  const token = await getToken();
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Players/items`,
-  {
-    method:"POST",
-    headers:{
-      Authorization:`Bearer ${token}`,
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({ fields:{ Title:name } })
-  });
-
-  document.getElementById("name").value = "";
-  loadPlayers();
-}
-
-
-// ✅ SPIELER LÖSCHEN
-async function deletePlayer(id){
-
-  const token = await getToken();
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Players/items/${id}`,
-  {
-    method:"DELETE",
-    headers:{ Authorization:`Bearer ${token}` }
-  });
-
-  loadPlayers();
-}
-
-
-// ✅ BOARDS DROPDOWN
-function createBoards(){
-
-  const sel = document.getElementById("board");
-  sel.innerHTML = "";
-
-  for(let i=1;i<=20;i++){
-    sel.innerHTML += `<option value="${i}">Board ${i}</option>`;
-  }
-}
-
-
-// ✅ TRAININGSSPIEL
-async function createTraining(){
-
-  const p1 = document.getElementById("p1").value;
-  const p2 = document.getElementById("p2").value;
-  const board = document.getElementById("board").value;
-
-  if(p1 === p2){
-    alert("Spieler müssen unterschiedlich sein!");
-    return;
-  }
-
-  const matches = await getList("Matches");
-
-  const exists = matches.find(m =>
-    m.fields.BoardId == board &&
-    m.fields.Status === "active"
-  );
-
-  if(exists){
-    alert("Board ist bereits belegt!");
-    return;
-  }
-
-  await createMatch(p1, p2, board);
-
-  await loadMatches();
-}
-
-
-// ✅ MATCHES ANZEIGEN
-async function loadMatches(){
-
-  const matches = await getList("Matches");
-  const div = document.getElementById("activeMatches");
-
-  div.innerHTML = "<h3>Aktuelle Spiele</h3>";
-
-  const active = matches.filter(m =>
-    m.fields &&
-    m.fields.Status === "active"
-  );
-
-  if(active.length === 0){
-    div.innerHTML += "<p>Keine aktiven Spiele</p>";
-    return;
-  }
-
-  active.forEach(m => {
-
-    const f = m.fields;
-
-    div.innerHTML += `
-      <div>
-        ✅ Board ${f.BoardId}: ${f.Player1} vs ${f.Player2}
-        <button onclick="finishMatch('${m.id}')">✔</button>
-      </div>
-    `;
-  });
-}
-
-
-// ✅ MATCH ERSTELLEN
-async function createMatch(p1, p2, board){
-
-  const token = await getToken();
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
-  {
-    method:"POST",
-    headers:{
-      Authorization:`Bearer ${token}`,
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({
-      fields:{
-        Title: p1 + " vs " + p2,
-        Player1: p1,
-        Player2: p2,
-        Score1: 501,
-        Score2: 501,
-        Legs1: 0,
-        Legs2: 0,
-        LegsToWin: 3,
-        BoardId: parseInt(board),
-        Turn: "p1",
-        Status: "active"
-      }
-    })
-  });
-}
-
-
-// ✅ MATCH BEENDEN
-async function finishMatch(id){
-
-  const token = await getToken();
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${id}/fields`,
-  {
-    method:"PATCH",
-    headers:{
-      Authorization:`Bearer ${token}`,
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({
-      Status: "finished"
-    })
-  });
-
-  loadMatches();
-}
-
-
-// ✅ GRUPPENPHASE (MIT BOARD LIMIT + GRUPPENÜBERSICHT)
-async function createGroups(){
-
-  const groupSize = parseInt(document.getElementById("groupSize").value);
-  const boardCount = parseInt(document.getElementById("boardCount").value);
-
-  let list = players.map(p => p.fields.Title);
-
-  list.sort(() => Math.random() - 0.5);
-
-  let groups = [];
-
-  for(let i=0;i<list.length;i+=groupSize){
-    groups.push(list.slice(i, i+groupSize));
-  }
-
-  renderGroups(groups);
-
-  let board = 1;
-
-  for(let g=0; g < groups.length; g++){
-
-    let group = groups[g];
-
-    for(let a=0;a<group.length;a++){
-      for(let b=a+1;b<group.length;b++){
-
-        await createMatch(group[a], group[b], board);
-
-        board++;
-
-        if(board > boardCount){
-          board = 1;
-        }
-      }
+<!DOCTYPE html>
+<html>
+<head>
+
+  <meta charset="UTF-8">
+  <title>Darts Admin</title>
+
+  <!-- MSAL + Scripts -->
+  <script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/graph.js"></script>
+  <script src="js/admin.js"></script>
+
+  <style>
+    body{
+      background:#000;
+      color:white;
+      font-family:Arial;
+      text-align:center;
     }
-  }
 
-  await loadMatches();
-}
-
-
-// ✅ KO TURNIER (MIT BOARD LIMIT)
-async function createKO(){
-
-  const boardCount = parseInt(document.getElementById("boardCount").value);
-
-  let list = players.map(p => p.fields.Title);
-  list.sort(() => Math.random() - 0.5);
-
-  let board = 1;
-
-  for(let i=0;i<list.length;i+=2){
-
-    await createMatch(
-      list[i],
-      list[i+1] || "Freilos",
-      board
-    );
-
-    board++;
-
-    if(board > boardCount){
-      board = 1;
+    h1{
+      margin-top:20px;
     }
-  }
 
-  await loadMatches();
-}
+    h2{
+      color:red;
+      margin-bottom:10px;
+    }
+
+    .container{
+      margin:20px auto;
+      padding:15px;
+      border:1px solid #333;
+      border-radius:10px;
+      width:80%;
+    }
+
+    input, select{
+      padding:8px;
+      margin:5px;
+      font-size:16px;
+    }
+
+    button{
+      padding:8px 12px;
+      margin:5px;
+      background:red;
+      color:white;
+      border:none;
+      border-radius:5px;
+      cursor:pointer;
+    }
+
+    button:hover{
+      background:#ff4444;
+    }
+
+    .player{
+      margin:5px;
+    }
+
+    #activeMatches{
+      margin-top:15px;
+    }
+
+    #groupsView{
+      margin-top:15px;
+      text-align:left;
+      display:inline-block;
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+<h1>⚙️ Admin</h1>
+
+<!-- ========================= -->
+<!-- 👤 SPIELER -->
+<!-- ========================= -->
+<div class="container">
+
+  <h2>👤 Spieler</h2>
+
+  <input id="name" placeholder="Name">
+  <button onclick="createPlayer()">➕ Spieler</button>
+
+  <div id="players"></div>
+
+</div>
 
 
-// ✅ GRUPPEN ANZEIGEN
-function renderGroups(groups){
+<!-- ========================= -->
+<!-- 🎯 TRAININGSSPIELE -->
+<!-- ========================= -->
+<div class="container">
 
-  const div = document.getElementById("groupsView");
+  <h2>🎯 Trainingsspiel</h2>
 
-  div.innerHTML = "<h3>Gruppen</h3>";
+  <div>
+    <select id="p1"></select>
+    <select id="p2"></select>
+    <select id="board"></select>
+  </div>
 
-  groups.forEach((g, i) => {
+  <button onclick="createTraining()">Match starten</button>
 
-    div.innerHTML += `
-      <div style="margin:10px; border:1px solid #444; padding:10px;">
-        <b>Gruppe ${i+1}</b><br>
-        ${g.join("<br>")}
-      </div>
-    `;
-  });
-}
+  <div id="activeMatches"></div>
+
+</div>
+
+
+<!-- ========================= -->
+<!-- 🏆 TURNIER -->
+<!-- ========================= -->
+<div class="container">
+
+  <h2>🏆 Turnier</h2>
+
+  <div>
+    <label>Boards verfügbar:</label>
+    <input id="boardCount" type="number" value="4" min="1">
+  </div>
+
+  <div>
+    <label>Gruppengröße:</label>
+    <input id="groupSize" type="number" value="3" min="2">
+  </div>
+
+  <br>
+
+  <button onclick="createGroups()">Gruppenphase starten</button>
+  <button onclick="calculateGroups()">Tabelle anzeigen</button>
+  <button onclick="startKO()">KO Phase starten</button>
+
+  <div id="groupsView"></div>
+
+</div>
+
+</body>
+</html>
