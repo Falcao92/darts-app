@@ -257,11 +257,14 @@ async function finishMatch(winner,l1,l2){
     }
   );
 
-  await reload();
+  // ✅ WICHTIG: warten + neu laden
+  await refreshMatches();
 
-  await handleKORound(f, winner);
-
+  // ✅ DANN Logik starten
   await autoProgress();
+
+  // ✅ UI zuletzt
+  await reload();
 }
 
 
@@ -334,39 +337,55 @@ async function autoProgress(){
     m.fields && m.fields.Round === "group"
   );
 
-  if(group.length > 0){
+  if(group.length === 0) return;
 
-    const ready = group.every(m =>
-      m.fields.Status === "finished"
-    );
+  const allFinished = group.every(m =>
+    m.fields.Status === "finished"
+  );
 
-    if(ready){
+  console.log("GROUP STATUS:", group.map(g => g.fields.Status));
 
-      await startKO();
-      return;
-    }
+  if(allFinished){
+
+    console.log("🔥 STARTE KO");
+
+    await startKO();
+
+    return;
   }
 
   await fillBoards();
 }
 
-
 // ==========================
 async function startKO(){
 
-  const existing = matches.some(m => m.fields.Round === "semi");
-  if(existing) return;
+  await refreshMatches();
+
+  const hasKO = matches.some(m => m.fields.Round === "semi");
+  if(hasKO){
+    console.log("KO existiert bereits");
+    return;
+  }
 
   let winners = matches
     .filter(m => m.fields.Round === "group")
-    .map(m => m.fields.Winner);
+    .map(m => m.fields.Winner)
+    .filter(Boolean);
 
   winners = [...new Set(winners)];
 
-  if(winners.length < 4) return;
+  console.log("Winners:", winners);
+
+  if(winners.length < 4){
+    console.log("⛔ nicht genug Spieler");
+    return;
+  }
 
   await create(winners[0], winners[1], "semi", 1);
   await create(winners[2], winners[3], "semi", 2);
+
+  console.log("✅ KO erstellt");
 }
 
 
