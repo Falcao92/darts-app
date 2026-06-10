@@ -98,7 +98,12 @@ async function createGroups(){
     groups.push(list.slice(i, i+groupSize));
   }
 
-  renderGroups(groups);
+
+// ✅ SPEICHERN (WICHTIG!)
+localStorage.setItem("groups", JSON.stringify(groups));
+
+renderGroups(groups);
+
 
   let board = 1;
 
