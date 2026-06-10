@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+
 <meta charset="UTF-8">
 <title>Turnier Übersicht</title>
 
@@ -22,10 +23,16 @@ h1{
   color:red;
 }
 
-/* BOARDS */
+h2{
+  text-align:center;
+}
+
+/* ===================
+   BOARDS
+=================== */
 #boards{
   display:grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap:10px;
   padding:10px;
 }
@@ -33,11 +40,30 @@ h1{
 .board{
   background:#111;
   border:2px solid red;
+  padding:10px;
   border-radius:10px;
+}
+
+/* ===================
+   GROUPS
+=================== */
+#groups{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px,1fr));
+  gap:10px;
   padding:10px;
 }
 
-/* BRACKET */
+.group{
+  background:#111;
+  padding:10px;
+  border:1px solid #333;
+  border-radius:6px;
+}
+
+/* ===================
+   BRACKET
+=================== */
 #bracket{
   display:flex;
   justify-content:center;
@@ -54,24 +80,9 @@ h1{
 .match{
   background:#111;
   padding:10px;
-  border-radius:6px;
   border:1px solid #333;
-  position:relative;
+  border-radius:6px;
   width:160px;
-}
-
-.match::after{
-  content:"";
-  position:absolute;
-  right:-20px;
-  top:50%;
-  width:20px;
-  height:2px;
-  background:#555;
-}
-
-.round:last-child .match::after{
-  display:none;
 }
 
 .winner{
@@ -79,6 +90,7 @@ h1{
   font-weight:bold;
 }
 </style>
+
 </head>
 
 <body>
@@ -86,6 +98,9 @@ h1{
 <h1>🎯 Turnier Übersicht</h1>
 
 <div id="boards"></div>
+
+<h2>🧩 Gruppen</h2>
+<div id="groups"></div>
 
 <h2>🏆 Turnierbaum</h2>
 <div id="bracket"></div>
