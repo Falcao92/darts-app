@@ -42,7 +42,25 @@ async function loadPlayers(){
 
 
 // ==========================
-// 🧹 ALTE MATCHES LÖSCHEN
+// ✅ FIX: PLAYER LÖSCHEN
+// ==========================
+async function deletePlayer(id){
+
+  const token = await getToken();
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Players/items/${id}`,
+  {
+    method:"DELETE",
+    headers:{ Authorization:`Bearer ${token}` }
+  });
+
+  await loadPlayers();
+}
+
+
+// ==========================
+// 🧹 MATCHES LÖSCHEN
 // ==========================
 async function clearMatches(){
 
@@ -91,7 +109,9 @@ async function createMatch(p1, p2, board, group = "", round = "group", status = 
         Status: status,
         Group: group,
         Winner: "",
-        Round: round
+        Round: round,
+        NextMatchId: "",
+        NextSlot: ""
       }
     })
   });
@@ -99,17 +119,15 @@ async function createMatch(p1, p2, board, group = "", round = "group", status = 
 
 
 // ==========================
-// 🏆 GRUPPEN ERSTELLEN
+// 🏆 GRUPPEN
 // ==========================
 async function createGroups(){
 
   const groupSize = parseInt(document.getElementById("groupSize").value);
   const boardCount = parseInt(document.getElementById("boardCount").value);
 
-  // ✅ Alte Matches löschen (MEGA WICHTIG)
   await clearMatches();
 
-  // ✅ Settings speichern
   localStorage.setItem("boardCount", boardCount);
 
   let list = players.map(p => p.fields.Title);
@@ -121,7 +139,6 @@ async function createGroups(){
     groups.push(list.slice(i, i+groupSize));
   }
 
-  // ✅ Gruppen speichern für Overview
   localStorage.setItem("groups", JSON.stringify(groups));
 
   renderGroups(groups);
@@ -158,8 +175,6 @@ async function createGroups(){
 
 
 // ==========================
-// GRUPPEN ANZEIGEN
-// ==========================
 function renderGroups(groups){
 
   const div = document.getElementById("groupsView");
@@ -183,78 +198,13 @@ function renderGroups(groups){
 
 
 // ==========================
-// 🏆 KO PHASE STARTEN
+// ✅ FIX: TABELLE (fehlte!)
 // ==========================
-async function startKO(){
-
-  const boardCount = parseInt(document.getElementById("boardCount").value);
-  localStorage.setItem("boardCount", boardCount);
+async function calculateGroups(){
 
   const matches = await getList("Matches");
 
-  let winners = matches
-    .filter(m => m.fields.Round === "group" && m.fields.Winner)
-    .map(m => m.fields.Winner);
-
-  // ✅ eindeutige Spieler
-  winners = [...new Set(winners)];
-
-  createKORound(winners, boardCount);
-}
-
-
-// ==========================
-// KO RUNDE
-// ==========================
-async function createKORound(players, boardCount){
-
-  players.sort(() => Math.random() - 0.5);
-
-  let board = 1;
-  let firstMatch = true;
-
-  let roundName = getRoundName(players.length);
-
-  for(let i=0;i<players.length;i+=2){
-
-    await createMatch(
-      players[i],
-      players[i+1],
-      board,
-      "",
-      roundName,
-      firstMatch ? "active" : "waiting"
-    );
-
-    firstMatch = false;
-
-    board++;
-    if(board > boardCount) board = 1;
-  }
-}
-
-
-// ==========================
-// RUNDE NAME
-// ==========================
-function getRoundName(count){
-
-  if(count === 16) return "last16";
-  if(count === 8) return "quarter";
-  if(count === 4) return "semi";
-  if(count === 2) return "final";
-
-  return "ko";
-}
-async function createKOFromGroups(){
-
-  const boardCount = parseInt(document.getElementById("boardCount").value);
-  localStorage.setItem("boardCount", boardCount);
-
-  const matches = await getList("Matches");
-
-  // ✅ Gruppentabelle bauen
-  let groups = {};
+  let table = {};
 
   matches.forEach(m => {
 
@@ -262,48 +212,56 @@ async function createKOFromGroups(){
 
     if(f.Round !== "group" || !f.Group) return;
 
-    if(!groups[f.Group]){
-      groups[f.Group] = {};
-    }
+    if(!table[f.Group]) table[f.Group] = {};
 
-    if(!groups[f.Group][f.Player1]){
-      groups[f.Group][f.Player1] = 0;
-    }
-
-    if(!groups[f.Group][f.Player2]){
-      groups[f.Group][f.Player2] = 0;
-    }
+    if(!table[f.Group][f.Player1]) table[f.Group][f.Player1] = 0;
+    if(!table[f.Group][f.Player2]) table[f.Group][f.Player2] = 0;
 
     if(f.Winner){
-      groups[f.Group][f.Winner] += 2;
+      table[f.Group][f.Winner] += 2;
     }
   });
 
-  // ✅ TOP 2
+  return table;
+}
+
+
+// ==========================
+// 🏆 KO START
+// ==========================
+async function startKO(){
+
+  const boardCount = parseInt(document.getElementById("boardCount").value);
+
+  const table = await calculateGroups();
+
   let qualified = [];
 
-  Object.values(groups).forEach(group => {
+  Object.values(table).forEach(group => {
 
     const sorted = Object.entries(group)
       .sort((a,b)=>b[1]-a[1]);
 
     qualified.push(sorted[0][0]);
-    qualified.push(sorted[1][0]);
+    if(sorted[1]) qualified.push(sorted[1][0]);
   });
 
   createKOBracket(qualified, boardCount);
 }
+
+
+// ==========================
+// KO STRUCTURE
+// ==========================
 async function createKOBracket(players, boardCount){
 
   players.sort(()=>Math.random()-0.5);
 
-  let matches = [];
-
   let roundName = getRoundName(players.length);
 
-  // ✅ KO Matches erzeugen
-  for(let i=0;i<players.length;i+=2){
+  let matches = [];
 
+  for(let i=0;i<players.length;i+=2){
     matches.push({
       Player1: players[i],
       Player2: players[i+1],
@@ -311,22 +269,32 @@ async function createKOBracket(players, boardCount){
     });
   }
 
-  // ✅ Runden vorberechnen
   await createNextRounds(matches, boardCount);
 }
 
-async function createNextRounds(firstRound, boardCount){
 
-  const token = await getToken();
+// ==========================
+// ✅ FIX: fehlte!
+// ==========================
+function getNextRound(r){
+
+  if(r === "last16") return "quarter";
+  if(r === "quarter") return "semi";
+  if(r === "semi") return "final";
+
+  return "final";
+}
+
+
+// ==========================
+async function createNextRounds(firstRound, boardCount){
 
   let current = firstRound;
   let nextRoundName = getNextRound(current[0].Round);
 
   let board = 1;
-
   let previousIds = [];
 
-  // ✅ erste Runde speichern
   for(const m of current){
 
     const id = await createMatchReturnId(
@@ -344,7 +312,6 @@ async function createNextRounds(firstRound, boardCount){
     if(board > boardCount) board = 1;
   }
 
-  // ✅ Weitere Runden generieren
   while(previousIds.length > 1){
 
     let nextIds = [];
@@ -360,7 +327,6 @@ async function createNextRounds(firstRound, boardCount){
         "waiting"
       );
 
-      // ✅ Verbindung herstellen
       await linkMatch(previousIds[i], id, "p1");
       await linkMatch(previousIds[i+1], id, "p2");
 
@@ -374,6 +340,9 @@ async function createNextRounds(firstRound, boardCount){
     nextRoundName = getNextRound(nextRoundName);
   }
 }
+
+
+// ==========================
 async function createMatchReturnId(p1,p2,board,group,round,status){
 
   const token = await getToken();
@@ -411,6 +380,9 @@ async function createMatchReturnId(p1,p2,board,group,round,status){
   const data = await res.json();
   return data.id;
 }
+
+
+// ==========================
 async function linkMatch(fromId, toId, slot){
 
   const token = await getToken();
@@ -428,4 +400,16 @@ async function linkMatch(fromId, toId, slot){
       NextSlot: slot
     })
   });
+}
+
+
+// ==========================
+function getRoundName(count){
+
+  if(count === 16) return "last16";
+  if(count === 8) return "quarter";
+  if(count === 4) return "semi";
+  if(count === 2) return "final";
+
+  return "ko";
 }
