@@ -399,3 +399,31 @@ function getRoundName(count){
 
   return "ko";
 }
+async function createPlayer(){
+
+  const name = document.getElementById("name").value.trim();
+  if(!name) return;
+
+  const token = await getToken();
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Players/items`,
+  {
+    method:"POST",
+    headers:{
+      Authorization:`Bearer ${token}`,
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+      fields:{
+        Title: name
+      }
+    })
+  });
+
+  // ✅ Eingabe leeren
+  document.getElementById("name").value = "";
+
+  // ✅ Liste neu laden
+  await loadPlayers();
+}
