@@ -42,6 +42,26 @@ async function loadPlayers(){
 
 
 // ==========================
+// 🧹 ALTE MATCHES LÖSCHEN
+// ==========================
+async function clearMatches(){
+
+  const token = await getToken();
+  const matches = await getList("Matches");
+
+  for(const m of matches){
+    await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${m.id}`,
+      {
+        method:"DELETE",
+        headers:{ Authorization:`Bearer ${token}` }
+      }
+    );
+  }
+}
+
+
+// ==========================
 // MATCH ERSTELLEN
 // ==========================
 async function createMatch(p1, p2, board, group = "", round = "group", status = "waiting"){
@@ -68,7 +88,7 @@ async function createMatch(p1, p2, board, group = "", round = "group", status = 
         LegsToWin: 3,
         BoardId: board,
         Turn: "p1",
-        Status: status,      // ✅ wichtig!
+        Status: status,
         Group: group,
         Winner: "",
         Round: round
@@ -79,14 +99,17 @@ async function createMatch(p1, p2, board, group = "", round = "group", status = 
 
 
 // ==========================
-// GRUPPEN ERSTELLEN
+// 🏆 GRUPPEN ERSTELLEN
 // ==========================
 async function createGroups(){
 
   const groupSize = parseInt(document.getElementById("groupSize").value);
   const boardCount = parseInt(document.getElementById("boardCount").value);
 
-  // ✅ speichern für overview
+  // ✅ Alte Matches löschen (MEGA WICHTIG)
+  await clearMatches();
+
+  // ✅ Settings speichern
   localStorage.setItem("boardCount", boardCount);
 
   let list = players.map(p => p.fields.Title);
@@ -98,20 +121,17 @@ async function createGroups(){
     groups.push(list.slice(i, i+groupSize));
   }
 
+  // ✅ Gruppen speichern für Overview
+  localStorage.setItem("groups", JSON.stringify(groups));
 
-// ✅ SPEICHERN (WICHTIG!)
-localStorage.setItem("groups", JSON.stringify(groups));
-
-renderGroups(groups);
-
+  renderGroups(groups);
 
   let board = 1;
 
   for(let g=0; g<groups.length; g++){
 
     const groupId = String.fromCharCode(65 + g);
-
-    let group = groups[g];
+    const group = groups[g];
 
     let firstMatch = true;
 
@@ -124,7 +144,7 @@ renderGroups(groups);
           board,
           groupId,
           "group",
-          firstMatch ? "active" : "waiting" // ✅ nur EIN aktives
+          firstMatch ? "active" : "waiting"
         );
 
         firstMatch = false;
@@ -147,6 +167,7 @@ function renderGroups(groups){
   let html = "<h3>Gruppen</h3>";
 
   groups.forEach((g, i) => {
+
     const groupId = String.fromCharCode(65 + i);
 
     html += `
@@ -162,88 +183,23 @@ function renderGroups(groups){
 
 
 // ==========================
-// TABELLE BERECHNEN
-// ==========================
-async function calculateGroups(){
-
-  const matches = await getList("Matches");
-
-  const finished = matches.filter(m =>
-    m.fields &&
-    m.fields.Round === "group" &&
-    m.fields.Winner
-  );
-
-  let table = {};
-
-  finished.forEach(m => {
-
-    const f = m.fields;
-
-    if(!table[f.Group]) table[f.Group] = {};
-
-    if(!table[f.Group][f.Player1]) table[f.Group][f.Player1] = 0;
-    if(!table[f.Group][f.Player2]) table[f.Group][f.Player2] = 0;
-
-    table[f.Group][f.Winner] += 2;
-  });
-
-  renderTable(table);
-
-  return table;
-}
-
-
-// ==========================
-// TABELLE ANZEIGEN
-// ==========================
-function renderTable(table){
-
-  const div = document.getElementById("groupsView");
-
-  let html = "<h3>Gruppentabelle</h3>";
-
-  Object.keys(table).forEach(group => {
-
-    let sorted = Object.entries(table[group])
-      .sort((a,b)=>b[1]-a[1]);
-
-    html += `<div><b>Gruppe ${group}</b><br>`;
-
-    sorted.forEach(p => {
-      html += `${p[0]} - ${p[1]} Punkte<br>`;
-    });
-
-    html += "</div><br>";
-  });
-
-  div.innerHTML = html;
-}
-
-
-// ==========================
-// KO PHASE STARTEN
+// 🏆 KO PHASE STARTEN
 // ==========================
 async function startKO(){
 
   const boardCount = parseInt(document.getElementById("boardCount").value);
-
   localStorage.setItem("boardCount", boardCount);
 
-  const table = await calculateGroups();
+  const matches = await getList("Matches");
 
-  let qualified = [];
+  let winners = matches
+    .filter(m => m.fields.Round === "group" && m.fields.Winner)
+    .map(m => m.fields.Winner);
 
-  Object.values(table).forEach(group => {
+  // ✅ eindeutige Spieler
+  winners = [...new Set(winners)];
 
-    const sorted = Object.entries(group)
-      .sort((a,b)=>b[1]-a[1]);
-
-    qualified.push(sorted[0][0]);
-    if(sorted[1]) qualified.push(sorted[1][0]);
-  });
-
-  createKORound(qualified, boardCount);
+  createKORound(winners, boardCount);
 }
 
 
@@ -252,7 +208,7 @@ async function startKO(){
 // ==========================
 async function createKORound(players, boardCount){
 
-  players.sort(()=>Math.random()-0.5);
+  players.sort(() => Math.random() - 0.5);
 
   let board = 1;
   let firstMatch = true;
