@@ -9,14 +9,12 @@ window.addEventListener("DOMContentLoaded", async () => {
 
 
 // ==========================
-// Turnier Starten
+// 🚀 TURNIER START
 // ==========================
-
 async function startTournament(){
 
   const useGroups = document.getElementById("useGroups").checked;
   const boardCount = parseInt(document.getElementById("boardCount").value);
-  const groupSize = parseInt(document.getElementById("groupSize").value);
 
   localStorage.setItem("boardCount", boardCount);
 
@@ -25,14 +23,22 @@ async function startTournament(){
   if(useGroups){
 
     await createGroups();
-    alert("✅ Gruppenphase gestartet!");
+
+    alert("✅ Gruppenphase gestartet");
 
   } else {
 
-    const list = players.map(p => p.fields.Title);
+    let list = players.map(p => p.fields.Title);
+
+    // ✅ Fix ungerade Spieler
+    if(list.length % 2 !== 0){
+      list.pop();
+      alert("⚠️ Ungerade Spieler – letzter entfernt");
+    }
+
     await createKOBracket(list, boardCount);
 
-    alert("✅ KO Turnier gestartet!");
+    alert("✅ KO Turnier gestartet");
   }
 }
 
@@ -71,8 +77,6 @@ async function loadPlayers(){
 
 
 // ==========================
-// ✅ FIX: PLAYER LÖSCHEN
-// ==========================
 async function deletePlayer(id){
 
   const token = await getToken();
@@ -89,7 +93,7 @@ async function deletePlayer(id){
 
 
 // ==========================
-// 🧹 MATCHES LÖSCHEN
+// MATCHES LÖSCHEN
 // ==========================
 async function clearMatches(){
 
@@ -109,9 +113,9 @@ async function clearMatches(){
 
 
 // ==========================
-// MATCH ERSTELLEN
+// MATCH CREATE
 // ==========================
-async function createMatch(p1, p2, board, group = "", round = "group", status = "waiting"){
+async function createMatch(p1, p2, board, group="", round="group", status="waiting"){
 
   const token = await getToken();
 
@@ -148,16 +152,12 @@ async function createMatch(p1, p2, board, group = "", round = "group", status = 
 
 
 // ==========================
-// 🏆 GRUPPEN
+// 🧩 GRUPPEN
 // ==========================
 async function createGroups(){
 
   const groupSize = parseInt(document.getElementById("groupSize").value);
   const boardCount = parseInt(document.getElementById("boardCount").value);
-
-  await clearMatches();
-
-  localStorage.setItem("boardCount", boardCount);
 
   let list = players.map(p => p.fields.Title);
   list.sort(() => Math.random() - 0.5);
@@ -179,7 +179,7 @@ async function createGroups(){
     const groupId = String.fromCharCode(65 + g);
     const group = groups[g];
 
-    let firstMatch = true;
+    let first = true;
 
     for(let a=0;a<group.length;a++){
       for(let b=a+1;b<group.length;b++){
@@ -190,10 +190,10 @@ async function createGroups(){
           board,
           groupId,
           "group",
-          firstMatch ? "active" : "waiting"
+          first ? "active" : "waiting"
         );
 
-        firstMatch = false;
+        first = false;
 
         board++;
         if(board > boardCount) board = 1;
@@ -210,16 +210,13 @@ function renderGroups(groups){
 
   let html = "<h3>Gruppen</h3>";
 
-  groups.forEach((g, i) => {
+  groups.forEach((g,i)=>{
 
-    const groupId = String.fromCharCode(65 + i);
+    const name = String.fromCharCode(65+i);
 
-    html += `
-      <div>
-        <b>Gruppe ${groupId}</b><br>
-        ${g.join("<br>")}
-      </div><br>
-    `;
+    html += `<b>Gruppe ${name}</b><br>`;
+    html += g.join("<br>");
+    html += "<br><br>";
   });
 
   div.innerHTML = html;
@@ -227,89 +224,43 @@ function renderGroups(groups){
 
 
 // ==========================
-// ✅ FIX: TABELLE (fehlte!)
-// ==========================
-async function calculateGroups(){
-
-  const matches = await getList("Matches");
-
-  let table = {};
-
-  matches.forEach(m => {
-
-    const f = m.fields;
-
-    if(f.Round !== "group" || !f.Group) return;
-
-    if(!table[f.Group]) table[f.Group] = {};
-
-    if(!table[f.Group][f.Player1]) table[f.Group][f.Player1] = 0;
-    if(!table[f.Group][f.Player2]) table[f.Group][f.Player2] = 0;
-
-    if(f.Winner){
-      table[f.Group][f.Winner] += 2;
-    }
-  });
-
-  return table;
-}
-
-
-// ==========================
-// 🏆 KO START
-// ==========================
-async function startKO(){
-
-  const boardCount = parseInt(document.getElementById("boardCount").value);
-
-  const table = await calculateGroups();
-
-  let qualified = [];
-
-  Object.values(table).forEach(group => {
-
-    const sorted = Object.entries(group)
-      .sort((a,b)=>b[1]-a[1]);
-
-    qualified.push(sorted[0][0]);
-    if(sorted[1]) qualified.push(sorted[1][0]);
-  });
-
-  createKOBracket(qualified, boardCount);
-}
-
-
-// ==========================
-// KO STRUCTURE
+// 🏆 KO
 // ==========================
 async function createKOBracket(players, boardCount){
 
+  if(players.length < 2) return;
+
+  if(players.length % 2 !== 0){
+    players.pop();
+  }
+
   players.sort(()=>Math.random()-0.5);
 
-  let roundName = getRoundName(players.length);
+  let round = getRoundName(players.length);
 
-  let matches = [];
+  let first = [];
 
   for(let i=0;i<players.length;i+=2){
-    matches.push({
+
+    first.push({
       Player1: players[i],
       Player2: players[i+1],
-      Round: roundName
+      Round: round
     });
   }
 
-  await createNextRounds(matches, boardCount);
+  if(first.length === 0) return;
+
+  await createNextRounds(first, boardCount);
 }
 
 
 // ==========================
-// ✅ FIX: fehlte!
-// ==========================
 function getNextRound(r){
 
-  if(r === "last16") return "quarter";
-  if(r === "quarter") return "semi";
-  if(r === "semi") return "final";
+  if(r==="last16") return "quarter";
+  if(r==="quarter") return "semi";
+  if(r==="semi") return "final";
 
   return "final";
 }
@@ -318,11 +269,17 @@ function getNextRound(r){
 // ==========================
 async function createNextRounds(firstRound, boardCount){
 
+  if(!firstRound || firstRound.length === 0){
+    console.error("❌ kein Start");
+    return;
+  }
+
   let current = firstRound;
-  let nextRoundName = getNextRound(current[0].Round);
+
+  let next = getNextRound(current[0].Round);
 
   let board = 1;
-  let previousIds = [];
+  let ids = [];
 
   for(const m of current){
 
@@ -335,29 +292,29 @@ async function createNextRounds(firstRound, boardCount){
       "waiting"
     );
 
-    previousIds.push(id);
+    ids.push(id);
 
     board++;
     if(board > boardCount) board = 1;
   }
 
-  while(previousIds.length > 1){
+  while(ids.length > 1){
 
     let nextIds = [];
 
-    for(let i=0;i<previousIds.length;i+=2){
+    for(let i=0;i<ids.length;i+=2){
 
       const id = await createMatchReturnId(
         "",
         "",
         board,
         "",
-        nextRoundName,
+        next,
         "waiting"
       );
 
-      await linkMatch(previousIds[i], id, "p1");
-      await linkMatch(previousIds[i+1], id, "p2");
+      await linkMatch(ids[i], id, "p1");
+      await linkMatch(ids[i+1], id, "p2");
 
       nextIds.push(id);
 
@@ -365,8 +322,8 @@ async function createNextRounds(firstRound, boardCount){
       if(board > boardCount) board = 1;
     }
 
-    previousIds = nextIds;
-    nextRoundName = getNextRound(nextRoundName);
+    ids = nextIds;
+    next = getNextRound(next);
   }
 }
 
@@ -397,17 +354,17 @@ async function createMatchReturnId(p1,p2,board,group,round,status){
         BoardId: board,
         Turn: "p1",
         Status: status,
-        Group: group,
+        Group: "",
         Winner: "",
         Round: round,
-        NextMatchId: "",
-        NextSlot: ""
+        NextMatchId:"",
+        NextSlot:""
       }
     })
   });
 
-  const data = await res.json();
-  return data.id;
+  const d = await res.json();
+  return d.id;
 }
 
 
