@@ -441,7 +441,28 @@ async function createTrainingMatch(){
 
   const token = await getToken();
 
-  await fetch(
+  const body = {
+    fields:{
+      Title: `${p1} vs ${p2}`,
+      Player1: p1,
+      Player2: p2,
+      Score1: 501,
+      Score2: 501,
+      Legs1: 0,
+      Legs2: 0,
+
+      // ✅ nur hinzufügen wenn sicher!
+      LegsToWin: 3,
+      Turn: "p1",
+
+      Status: "active",
+      BoardId: String(board)
+    }
+  };
+
+  console.log("TRAINING SEND:", body);
+
+  const res = await fetch(
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/TrainingMatches/items`,
     {
       method:"POST",
@@ -449,21 +470,16 @@ async function createTrainingMatch(){
         Authorization:`Bearer ${token}`,
         "Content-Type":"application/json"
       },
-      body:JSON.stringify({
-        fields:{
-          Title: `${p1} vs ${p2}`,
-          Player1: p1,
-          Player2: p2,
-          Score1: 501,
-          Score2: 501,
-          Legs1: 0,
-          Legs2: 0,
-          Status: "active",
-          BoardId: String(board)
-        }
-      })
+      body:JSON.stringify(body)
     }
   );
+
+  if(!res.ok){
+    const err = await res.text();
+    console.error("❌ TRAINING ERROR:", err);
+    alert("Fehler beim Starten (Console öffnen!)");
+    return;
+  }
 
   alert("✅ Trainingsspiel gestartet");
 }
