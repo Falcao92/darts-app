@@ -13,6 +13,37 @@ window.addEventListener("DOMContentLoaded", async () => {
 });
 
 // ==========================
+// 🚀 Spieler hinzufügen
+// ==========================
+
+async function addPlayer(){
+
+  const name = document.querySelector("#playerInput").value;
+
+  if(!name) return;
+
+  const token = await getToken();
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Players/items`,
+    {
+      method:"POST",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        fields:{
+          Title: name
+        }
+      })
+    }
+  );
+
+  document.querySelector("#playerInput").value="";
+  await loadPlayers();
+}
+// ==========================
 // 🚀 training
 // ==========================
 
@@ -95,30 +126,34 @@ async function startTournament(){
 // ==========================
 async function loadPlayers(){
 
-  players = await getList("Players") || [];
+  const players = await getList("Players");
 
-  const div = document.getElementById("players");
-  const p1 = document.getElementById("p1");
-  const p2 = document.getElementById("p2");
+  const list = document.getElementById("playerList");
+  const p1 = document.getElementById("tp1");
+  const p2 = document.getElementById("tp2");
 
-  div.innerHTML = "";
-  p1.innerHTML = "";
-  p2.innerHTML = "";
+  if(!list) return;
+
+  list.innerHTML = "";
+
+  if(p1) p1.innerHTML = "";
+  if(p2) p2.innerHTML = "";
 
   players.forEach(p => {
 
-    const name = p.fields?.Title;
-    if(!name) return;
+    const name = p.fields.Title;
 
-    div.innerHTML += `
-      <div class="player">
-        ${name}
-        <button onclick="deletePlayer('${p.id}')">❌</button>
-      </div>
+    // ✅ Liste anzeigen
+    const div = document.createElement("div");
+    div.innerHTML = `
+      ${name}
+      <button onclick="deletePlayer('${p.id}')">❌</button>
     `;
+    list.appendChild(div);
 
-    p1.innerHTML += `<option>${name}</option>`;
-    p2.innerHTML += `<option>${name}</option>`;
+    // ✅ Training Dropdown füllen
+    if(p1) p1.innerHTML += `<option value="${name}">${name}</option>`;
+    if(p2) p2.innerHTML += `<option value="${name}">${name}</option>`;
   });
 }
 
@@ -161,7 +196,9 @@ async function deletePlayer(id){
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Players/items/${id}`,
     {
       method:"DELETE",
-      headers:{ Authorization:`Bearer ${token}` }
+      headers:{
+        Authorization:`Bearer ${token}`
+      }
     }
   );
 
