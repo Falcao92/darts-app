@@ -272,7 +272,8 @@ async function finishMatch(winner,l1,l2){
   Legs2:l2,
   Winner:winner,
   Status:"finished",
-  BoardId:null // ✅ FIX
+  BoardId:null, // ✅ FIX
+      Turn: ""
 })
     }
   );
