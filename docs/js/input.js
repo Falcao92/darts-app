@@ -442,3 +442,37 @@ async function startKO(){
 
   console.log("✅ KO erstellt");
 }
+
+async function create(p1,p2,round,board,token=null){
+
+  if(!token) token = await getToken();
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
+    {
+      method:"POST",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        fields:{
+          Title:`${p1} vs ${p2}`,
+          Player1:p1,
+          Player2:p2,
+          Score1:501,
+          Score2:501,
+          Legs1:0,
+          Legs2:0,
+          LegsToWin:3,
+          BoardId:null,        // ✅ WICHTIG: kein fixes Board
+          Turn:"p1",
+          Status:"waiting",    // ✅ NICHT active!
+          Round:round
+        }
+      })
+    }
+  );
+}
+
+
