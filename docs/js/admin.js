@@ -242,7 +242,17 @@ async function createTrainingMatch(){
 // ==========================
 async function startTournament(){
 
-  const boardCount = parseInt(document.getElementById("boardCount").value);
+let boardCount;
+
+// ✅ Training → flexibel
+if(mode === "training"){
+  boardCount = 10; // oder 5 oder was du willst
+}
+
+// ✅ Turnier → gespeicherte Boards
+else{
+  boardCount = parseInt(localStorage.getItem("boardCount")) || 2;
+}
   const useGroups = document.getElementById("useGroups").checked;
 
   localStorage.setItem("boardCount", boardCount);
