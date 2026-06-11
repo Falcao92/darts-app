@@ -425,4 +425,47 @@ async function createMatch(p1, p2, board="", group="", round="group", status="wa
   );
 }
 
+// ==========================
+// ✅ TRAINING MATCH STARTEN
+// ==========================
+async function createTrainingMatch(){
 
+  const p1 = document.getElementById("tp1").value;
+  const p2 = document.getElementById("tp2").value;
+  const board = document.getElementById("tboard").value;
+
+  if(!p1 || !p2 || p1 === p2){
+    alert("❌ Ungültige Auswahl");
+    return;
+  }
+
+  const token = await getToken();
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/TrainingMatches/items`,
+    {
+      method:"POST",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        fields:{
+          Title: `${p1} vs ${p2}`,
+          Player1: p1,
+          Player2: p2,
+          Score1: 501,
+          Score2: 501,
+          Legs1: 0,
+          Legs2: 0,
+          LegsToWin: 3,
+          Turn: "p1",
+          Status: "active",
+          BoardId: String(board)
+        }
+      })
+    }
+  );
+
+  alert("✅ Trainingsspiel gestartet");
+}
