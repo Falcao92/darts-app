@@ -118,6 +118,8 @@ function loadMatch(){
 
 
 // ==========================
+// ✅ UI UPDATE (FIXED + LIVE STATS)
+// ==========================
 function updateUI(){
 
   const f = currentMatch.fields;
@@ -126,13 +128,15 @@ function updateUI(){
   set("score", `${f.Score1} : ${f.Score2}`);
   set("legs", `Legs ${f.Legs1||0}:${f.Legs2||0}`);
   set("turn", f.Turn==="p1"?f.Player1:f.Player2);
+
+  // ✅ LIVE STATS FIX
+  const darts = f.DartsThrown || 0;
+  const scored = (501 - f.Score1) + (501 - f.Score2);
+  const avg = darts > 0 ? ((scored / darts) * 3).toFixed(1) : 0;
+
+  set("liveAvg", `Avg: ${avg} | Darts: ${darts}`);
 }
-const darts = f.DartsThrown || 0;
-const scored = (501 - f.Score1) + (501 - f.Score2);
 
-const avg = darts > 0 ? ((scored / darts) * 3).toFixed(1) : 0;
-
-set("liveAvg", `Avg: ${avg} | Darts: ${darts}`);
 
 
 // ==========================
@@ -208,7 +212,10 @@ async function submit(){
   if(!currentMatch) return;
 
   const f=currentMatch.fields;
-  let darts = f.DartsThrown || 0;let darts = f.DartsThrown || 0 += 3;
+
+  // ✅ FIX: nur einmal
+  let darts = f.DartsThrown || 0;
+  darts += 3;
 
   let s1=f.Score1;
   let s2=f.Score2;
@@ -219,16 +226,6 @@ async function submit(){
   let turn=f.Turn;
 
   const total = val(d1.value)+val(d2.value)+val(d3.value);
-  if(total === 180){
-
-  const token = await getToken();
-
-  if(turn === "p1"){
-    await fetch(...update 180_1...);
-  }else{
-    await fetch(...update 180_2...);
-  }
-}
   const last = d3.value||d2.value||d1.value;
   const target = parseInt(f.LegsToWin)||3;
 
@@ -243,11 +240,11 @@ async function submit(){
         await finishMatch(f.Player1,l1,l2);
         return;
       }
-      await update(501,501,"p2",l1,l2);
+      await update(501,501,"p2",l1,l2,darts);
     } else {
       if(ns>1) s1=ns;
       turn="p2";
-     async function update(s1,s2,turn,l1,l2,darts){
+      await update(s1,s2,turn,l1,l2,darts);
     }
 
   }else{
@@ -260,11 +257,11 @@ async function submit(){
         await finishMatch(f.Player2,l1,l2);
         return;
       }
-      await update(501,501,"p1",l1,l2);
+      await update(501,501,"p1",l1,l2,darts);
     } else {
       if(ns>1) s2=ns;
       turn="p1";
-     async function update(s1,s2,turn,l1,l2,darts){
+      await update(s1,s2,turn,l1,l2,darts);
     }
   }
 
@@ -276,7 +273,7 @@ async function submit(){
 // ==========================
 // ✅ UPDATE
 // ==========================
-async function update(s1,s2,turn,l1,l2){
+async function update(s1,s2,turn,l1,l2,darts){
 
   const token=await getToken();
 
@@ -294,11 +291,12 @@ async function update(s1,s2,turn,l1,l2){
         Turn:turn,
         Legs1:l1,
         Legs2:l2,
-        DartsThrown: darts
+        DartsThrown: darts   // ✅ FIX
       })
     }
   );
 }
+
 
 
 // ==========================
