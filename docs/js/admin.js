@@ -332,24 +332,31 @@ async function activateFirstMatches(){
   const token = await getToken();
   const matches = await getList("Matches");
 
+  const boardCount = parseInt(localStorage.getItem("boardCount")) || 2;
+
   const first = matches
     .filter(m => m.fields.Status === "waiting")
-    .slice(0, parseInt(localStorage.getItem("boardCount")) || 2);
+    .slice(0, boardCount);
 
-  for(const m of first){
+  for(let i = 0; i < first.length; i++){
+
     await fetch(
-      `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${m.id}/fields`,
+      `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${first[i].id}/fields`,
       {
         method:"PATCH",
         headers:{
           Authorization:`Bearer ${token}`,
           "Content-Type":"application/json"
         },
-        body:JSON.stringify({ Status:"active" })
+        body:JSON.stringify({
+          Status:"active",
+          BoardId: String(i+1) // ✅ DAS FEHLTE!
+        })
       }
     );
   }
 }
+
 
 
 // ==========================
