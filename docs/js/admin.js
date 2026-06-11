@@ -25,7 +25,6 @@ async function loadPlayers(){
   if(p1) p1.innerHTML="";
   if(p2) p2.innerHTML="";
 
-  // ✅ Training Matches EINMAL laden
   const trainingMatches = await getList("TrainingMatches");
 
   for(const p of players){
@@ -36,7 +35,7 @@ async function loadPlayers(){
 
     const stats = getPlayerStatsFromList(name, trainingMatches);
 
-    // ✅ Trainingsgruppe (ALLE Spieler)
+    // 👥 Trainingsgruppe
     trainingDiv.innerHTML += `
       <div class="playerRow">
 
@@ -61,7 +60,7 @@ async function loadPlayers(){
       </div>
     `;
 
-    // ✅ Training Dropdown
+    // 🎯 Trainings Dropdown
     if(mode === "training" || mode === "both"){
       p1.innerHTML += `<option value="${name}">${name}</option>`;
       p2.innerHTML += `<option value="${name}">${name}</option>`;
@@ -73,12 +72,10 @@ async function loadPlayers(){
 
 
 // ==========================
-// ✅ STATS (OPTIMIERT)
+// ✅ STATS
 // ==========================
 function getPlayerStatsFromList(name, matches){
 
-  let games = 0;
-  let wins = 0;
   let totalPoints = 0;
   let totalDarts = 0;
   let total180 = 0;
@@ -91,13 +88,8 @@ function getPlayerStatsFromList(name, matches){
 
     if(f.Player1 !== name && f.Player2 !== name) return;
 
-    games++;
-
-    if(f.Winner === name) wins++;
-
     const score = (f.Player1 === name) ? f.Score1 : f.Score2;
     totalPoints += (501 - (score || 501));
-
     totalDarts += 30;
 
     total180 += (f.Player1 === name)
@@ -105,20 +97,18 @@ function getPlayerStatsFromList(name, matches){
       : (f["180_2"] || 0);
 
     if(f["Checkout1"] || f["Checkout2"]){
-
       if((f.Player1 === name && f["Checkout1"]) ||
          (f.Player2 === name && f["Checkout2"])){
         checkoutsMade++;
       }
-
       checkoutAttempts++;
     }
   });
 
-  const avg = games > 0 ? (totalPoints / totalDarts * 300).toFixed(1) : 0;
+  const avg = totalDarts > 0 ? (totalPoints / totalDarts * 300).toFixed(1) : 0;
   const co = checkoutAttempts > 0 ? ((checkoutsMade / checkoutAttempts)*100).toFixed(0) : 0;
 
-  return { games, wins, avg, total180, co };
+  return { avg, total180, co };
 }
 
 
@@ -143,6 +133,8 @@ async function updatePlayerMode(id, newMode){
 }
 
 
+// ==========================
+// ✅ TURNIER SPIELERAUSWAHL
 // ==========================
 function renderTournamentPlayers(){
 
@@ -189,7 +181,6 @@ function addGuest(){
   if(!name) return;
 
   guests.push(name);
-
   document.getElementById("guestInput").value="";
 
   renderTournamentPlayers();
@@ -246,6 +237,8 @@ async function deletePlayer(id){
 
 
 // ==========================
+// ✅ TURNIER START
+// ==========================
 async function startTournament(){
 
   const boardCount = parseInt(document.getElementById("boardCount").value);
@@ -266,7 +259,7 @@ async function startTournament(){
   if(useGroups){
     await createGroups(list);
   } else {
-    await createKOBracket(list, boardCount);
+    await createKOBracket(list);
   }
 
   alert("✅ Turnier gestartet");
@@ -290,13 +283,13 @@ async function clearMatches(){
   }
 }
 
+
 // ==========================
-// Gruppe erstellen für Turnier
+// 🧩 GRUPPEN
 // ==========================
 async function createGroups(list){
 
   const groupSize = parseInt(document.getElementById("groupSize").value);
-  const boardCount = parseInt(document.getElementById("boardCount").value);
 
   let shuffled = [...list].sort(() => Math.random() - 0.5);
 
@@ -306,14 +299,12 @@ async function createGroups(list){
     groups.push(shuffled.slice(i, i+groupSize));
   }
 
-  let board = 1;
+  let firstMatches = [];
 
   for(let g = 0; g < groups.length; g++){
 
     const groupId = String.fromCharCode(65 + g);
     const group = groups[g];
-
-    let first = true;
 
     for(let i=0;i<group.length;i++){
       for(let j=i+1;j<group.length;j++){
@@ -321,23 +312,50 @@ async function createGroups(list){
         await createMatch(
           group[i],
           group[j],
-          board,
+          "",
           groupId,
           "group",
-          first ? "active" : "waiting"
+          "waiting"
         );
-
-        first = false;
-
-        board++;
-        if(board > boardCount) board = 1;
       }
     }
   }
+
+  // ✅ erste Spiele starten
+  await activateFirstMatches();
 }
 
-// KO Runde generieren
-async function createKOBracket(players, boardCount){
+
+// ==========================
+async function activateFirstMatches(){
+
+  const token = await getToken();
+  const matches = await getList("Matches");
+
+  const first = matches
+    .filter(m => m.fields.Status === "waiting")
+    .slice(0, parseInt(localStorage.getItem("boardCount")) || 2);
+
+  for(const m of first){
+    await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${m.id}/fields`,
+      {
+        method:"PATCH",
+        headers:{
+          Authorization:`Bearer ${token}`,
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({ Status:"active" })
+      }
+    );
+  }
+}
+
+
+// ==========================
+// 🏆 KO
+// ==========================
+async function createKOBracket(players){
 
   players = [...players];
 
@@ -347,27 +365,26 @@ async function createKOBracket(players, boardCount){
 
   players.sort(() => Math.random() - 0.5);
 
-  let board = 1;
-
   for(let i=0;i<players.length;i+=2){
 
     await createMatch(
       players[i],
       players[i+1],
-      board,
+      "",
       "",
       "ko",
-      "active"
+      "waiting"
     );
-
-    board++;
-    if(board > boardCount) board = 1;
   }
+
+  await activateFirstMatches();
 }
 
-// Spiele generieren
 
-async function createMatch(p1, p2, board, group="", round="group", status="active"){
+// ==========================
+// ✅ MATCH ERSTELLEN
+// ==========================
+async function createMatch(p1, p2, board="", group="", round="group", status="waiting"){
 
   const token = await getToken();
 
@@ -389,7 +406,7 @@ async function createMatch(p1, p2, board, group="", round="group", status="activ
           Legs1: 0,
           Legs2: 0,
           LegsToWin: 3,
-          BoardId: ""
+          BoardId: null,   // ✅ KEIN festes Board
           Turn: "p1",
           Status: status,
           Group: group,
