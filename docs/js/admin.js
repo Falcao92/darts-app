@@ -36,10 +36,21 @@ async function loadPlayers(){
 
     // ✅ TRAININGSGRUPPE (ALLE SPIELER!)
     if(trainingDiv){
-      trainingDiv.innerHTML += `
-        <div class="playerRow">
+   const stats = await getPlayerStats(name);
 
-          <span>${name}</span>
+trainingDiv.innerHTML += `
+  <div class="playerRow">
+
+    <span>
+      ${name}
+      <br>
+      <small>
+        Avg: ${stats.avg} |
+        180: ${stats.total180} |
+        CO: ${stats.co}%
+      </small>
+    </span>
+
 
           <select onchange="updatePlayerMode('${p.id}', this.value)">
             <option value="training" ${mode==="training"?"selected":""}>Training</option>
@@ -289,4 +300,58 @@ async function clearMatches(){
       }
     );
   }
+}
+
+async function getPlayerStats(name){
+
+  const matches = await getList("TrainingMatches");
+
+  let games = 0;
+  let wins = 0;
+  let totalPoints = 0;
+  let totalDarts = 0;
+  let total180 = 0;
+  let checkoutsMade = 0;
+  let checkoutAttempts = 0;
+
+  matches.forEach(m => {
+
+    const f = m.fields;
+
+    if(f.Player1 !== name && f.Player2 !== name) return;
+
+    games++;
+
+    if(f.Winner === name) wins++;
+
+    // ✅ TODO simpel (kann später verfeinert werden)
+    const score = (f.Player1 === name) ? f.Score1 : f.Score2;
+    totalPoints += (501 - score);
+
+    totalDarts += 30; // grob angenommen (3 darts * ~10 runden)
+
+    // future ready
+    if(f["180_1"] || f["180_2"]){
+      total180 += (f.Player1 === name) ? (f["180_1"]||0) : (f["180_2"]||0);
+    }
+
+    if(f["Checkout1"] || f["Checkout2"]){
+      if((f.Player1 === name && f["Checkout1"]) ||
+         (f.Player2 === name && f["Checkout2"])){
+        checkoutsMade++;
+      }
+      checkoutAttempts++;
+    }
+  });
+
+  const avg = games > 0 ? (totalPoints / totalDarts * 3 * 100).toFixed(1) : 0;
+  const co = checkoutAttempts > 0 ? ((checkoutsMade / checkoutAttempts)*100).toFixed(0) : 0;
+
+  return {
+    games,
+    wins,
+    avg,
+    total180,
+    co
+  };
 }
