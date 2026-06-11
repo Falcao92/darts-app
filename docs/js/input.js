@@ -258,6 +258,7 @@ async function update(s1,s2,turn,l1,l2){
 async function finishMatch(winner,l1,l2){
 
   const token=await getToken();
+  const f=currentMatch.fields;
 
   await fetch(
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${currentMatch.id}/fields`,
@@ -267,21 +268,29 @@ async function finishMatch(winner,l1,l2){
         Authorization:`Bearer ${token}`,
         "Content-Type":"application/json"
       },
-    body:JSON.stringify({
-  Legs1:l1,
-  Legs2:l2,
-  Winner:winner,
-  Status:"finished",
-  BoardId:null, // ✅ FIX
-      Turn: ""
-})
+      body:JSON.stringify({
+        Legs1:l1,
+        Legs2:l2,
+        Winner:winner,
+        Status:"finished",
+        BoardId:null
+      })
     }
   );
 
-  await fillBoards(); // ✅ nächstes Spiel holen
+  // ✅ WICHTIG: frisch laden
+  await refreshMatches();
+
+  // ✅ KO START prüfen
+  if(mode === "tournament"){
+    await autoProgress();
+  }
+
+  // ✅ neues Board belegen
+  await fillBoards();
+
   await reload();
 }
-
 
 
 // ==========================
@@ -336,8 +345,16 @@ async function fillBoards(){
 // ==========================
 async function reload(){
 
+  const sel = document.getElementById("boardSelect");
+  const current = sel ? sel.value : null;
+
   await refreshMatches();
   buildBoardSelect();
+
+  if(sel && current && [...sel.options].some(o => o.value === current)){
+    sel.value = current; // ✅ Auswahl behalten
+  }
+
   loadMatch();
 }
 
@@ -346,4 +363,82 @@ function reset(){
   d1.value="";
   d2.value="";
   d3.value="";
+}
+
+
+//auto Fortsetzung
+async function autoProgress(){
+
+  await refreshMatches();
+
+  const group = matches.filter(m =>
+    m.fields && m.fields.Round === "group"
+  );
+
+  if(group.length === 0) return;
+
+  const allFinished = group.every(m =>
+    m.fields.Status === "finished"
+  );
+
+  console.log("GROUP STATUS:", group.map(g => g.fields.Status));
+
+  if(allFinished){
+    console.log("🔥 Gruppen fertig → starte KO");
+    await startKO();
+  }
+}
+
+//KO_phase starten
+
+async function startKO(){
+
+  await refreshMatches();
+
+  const exists = matches.some(m => m.fields.Round === "semi");
+  if(exists){
+    console.log("KO existiert bereits");
+    return;
+  }
+
+  let groups = {};
+
+  matches
+    .filter(m => m.fields.Round === "group")
+    .forEach(m => {
+
+      const f = m.fields;
+
+      if(!groups[f.Group]) groups[f.Group] = {};
+
+      if(!groups[f.Group][f.Player1]) groups[f.Group][f.Player1] = 0;
+      if(!groups[f.Group][f.Player2]) groups[f.Group][f.Player2] = 0;
+
+      if(f.Winner){
+        groups[f.Group][f.Winner] += 2;
+      }
+    });
+
+  let players = [];
+
+  Object.values(groups).forEach(g => {
+
+    const sorted = Object.entries(g)
+      .sort((a,b) => b[1] - a[1]);
+
+    players.push(sorted[0][0]); // Platz 1
+    if(sorted[1]) players.push(sorted[1][0]); // Platz 2
+  });
+
+  console.log("KO Spieler:", players);
+
+  if(players.length < 4){
+    console.log("⛔ zu wenig Spieler für KO");
+    return;
+  }
+
+  await create(players[0], players[1], "semi", 1);
+  await create(players[2], players[3], "semi", 2);
+
+  console.log("✅ KO erstellt");
 }
