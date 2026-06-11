@@ -1,24 +1,69 @@
 let players = [];
 
 window.addEventListener("DOMContentLoaded", async () => {
+
   const ok = await ensureLogin();
   if (!ok) return;
 
   await loadPlayers();
 
-  // ✅ ENTER = Spieler hinzufügen
-  document.getElementById("name").addEventListener("keypress", e => {
-    if(e.key === "Enter") createPlayer();
-  });
+  // ✅ ENTER zum hinzufügen
+  const input = document.getElementById("playerInput");
+  if(input){
+    input.addEventListener("keypress", e => {
+      if(e.key === "Enter") addPlayer();
+    });
+  }
 });
 
-// ==========================
-// 🚀 Spieler hinzufügen
-// ==========================
 
+// ==========================
+// ✅ SPIELER LADEN (KERN)
+// ==========================
+async function loadPlayers(){
+
+  players = await getList("Players");
+
+  const list = document.getElementById("playerList");
+  const p1 = document.getElementById("tp1");
+  const p2 = document.getElementById("tp2");
+
+  if(!list) return;
+
+  list.innerHTML = "";
+  if(p1) p1.innerHTML = "";
+  if(p2) p2.innerHTML = "";
+
+  players.forEach(p => {
+
+    const f = p.fields;
+    const name = f.Title;
+    const mode = f.Mode || "tournament";
+
+    // ✅ Anzeige im Admin
+    const div = document.createElement("div");
+    div.innerHTML = `
+      ${name} (${mode})
+      <button onclick="deletePlayer('${p.id}')">❌</button>
+    `;
+    list.appendChild(div);
+
+    // ✅ Training Spieler hinzufügen
+    if(mode === "training" || mode === "both"){
+      if(p1) p1.innerHTML += `<option value="${name}">${name}</option>`;
+      if(p2) p2.innerHTML += `<option value="${name}">${name}</option>`;
+    }
+  });
+}
+
+
+// ==========================
+// ✅ SPIELER HINZUFÜGEN
+// ==========================
 async function addPlayer(){
 
-  const name = document.querySelector("#playerInput").value;
+  const name = document.getElementById("playerInput").value.trim();
+  const type = document.getElementById("playerType").value;
 
   if(!name) return;
 
@@ -34,159 +79,20 @@ async function addPlayer(){
       },
       body:JSON.stringify({
         fields:{
-          Title: name
+          Title: name,
+          Mode: type
         }
       })
     }
   );
 
-  document.querySelector("#playerInput").value="";
-  await loadPlayers();
-}
-// ==========================
-// 🚀 training
-// ==========================
-
-async function createTrainingMatch(){
-
-  const p1 = document.getElementById("tp1").value;
-  const p2 = document.getElementById("tp2").value;
-  const board = document.getElementById("tboard").value;
-
-  const token = await getToken();
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/TrainingMatches/items`,
-  {
-    method:"POST",
-    headers:{
-      Authorization:`Bearer ${token}`,
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({
-      fields:{
-        Title: p1 + " vs " + p2,
-        Player1: p1,
-        Player2: p2,
-        Score1: 501,
-        Score2: 501,
-        Legs1: 0,
-        Legs2: 0,
-        Status: "active",
-        BoardId: board,
-        Date: new Date().toISOString()
-      }
-    })
-  });
-
-  alert("✅ Trainingsspiel gestartet");
-}
-
-// ==========================
-// 🚀 TURNIER START
-// ==========================
-async function startTournament(){
-
-  const useGroups = document.getElementById("useGroups").checked;
-  const boardCount = parseInt(document.getElementById("boardCount").value);
-
-  localStorage.setItem("boardCount", boardCount);
-
-  await clearMatches();
-
-  if(players.length < 2){
-    alert("❌ Mindestens 2 Spieler nötig");
-    return;
-  }
-
-  if(useGroups){
-
-    await createGroups();
-
-    alert("✅ Gruppenphase gestartet");
-
-  } else {
-
-    let list = players.map(p => p.fields.Title);
-
-    if(list.length % 2 !== 0){
-      list.pop();
-      alert("⚠️ Ungerade Spieler – letzter entfernt");
-    }
-
-    await createKOBracket(list, boardCount);
-
-    alert("✅ KO Turnier gestartet");
-  }
-}
-
-
-// ==========================
-// SPIELER LADEN
-// ==========================
-async function loadPlayers(){
-
-  const players = await getList("Players");
-
-  const list = document.getElementById("playerList");
-  const p1 = document.getElementById("tp1");
-  const p2 = document.getElementById("tp2");
-
-  if(!list) return;
-
-  list.innerHTML = "";
-
-  if(p1) p1.innerHTML = "";
-  if(p2) p2.innerHTML = "";
-
-  players.forEach(p => {
-
-    const name = p.fields.Title;
-
-    // ✅ Liste anzeigen
-    const div = document.createElement("div");
-    div.innerHTML = `
-      ${name}
-      <button onclick="deletePlayer('${p.id}')">❌</button>
-    `;
-    list.appendChild(div);
-
-    // ✅ Training Dropdown füllen
-    if(p1) p1.innerHTML += `<option value="${name}">${name}</option>`;
-    if(p2) p2.innerHTML += `<option value="${name}">${name}</option>`;
-  });
-}
-
-
-// ==========================
-// ➕ SPIELER ERSTELLEN
-// ==========================
-async function createPlayer(){
-
-  const name = document.getElementById("name").value.trim();
-  if(!name) return;
-
-  const token = await getToken();
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Players/items`,
-    {
-      method:"POST",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        fields:{ Title: name }
-      })
-    }
-  );
-
-  document.getElementById("name").value = "";
+  document.getElementById("playerInput").value="";
   await loadPlayers();
 }
 
 
+// ==========================
+// ✅ SPIELER LÖSCHEN
 // ==========================
 async function deletePlayer(id){
 
@@ -207,7 +113,97 @@ async function deletePlayer(id){
 
 
 // ==========================
-// MATCHES LÖSCHEN
+// ✅ TRAINING START
+// ==========================
+async function createTrainingMatch(){
+
+  const p1 = document.getElementById("tp1").value;
+  const p2 = document.getElementById("tp2").value;
+  const board = document.getElementById("tboard").value;
+
+  if(!p1 || !p2 || p1 === p2){
+    alert("❌ Ungültige Auswahl");
+    return;
+  }
+
+  const token = await getToken();
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/TrainingMatches/items`,
+    {
+      method:"POST",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        fields:{
+          Title: `${p1} vs ${p2}`,
+          Player1: p1,
+          Player2: p2,
+          Score1: 501,
+          Score2: 501,
+          Legs1: 0,
+          Legs2: 0,
+          Status: "active",
+          BoardId: board,
+          Date: new Date().toISOString()
+        }
+      })
+    }
+  );
+
+  alert("✅ Trainingsspiel gestartet");
+}
+
+
+// ==========================
+// ✅ TURNIER START
+// ==========================
+async function startTournament(){
+
+  const useGroups = document.getElementById("useGroups").checked;
+  const boardCount = parseInt(document.getElementById("boardCount").value);
+
+  localStorage.setItem("boardCount", boardCount);
+
+  await clearMatches();
+
+  // ✅ NUR TURNIERSPIELER VERWENDEN
+  let list = players
+    .filter(p => {
+      const m = p.fields.Mode;
+      return m === "tournament" || m === "both";
+    })
+    .map(p => p.fields.Title);
+
+  if(list.length < 2){
+    alert("❌ Mindestens 2 Turnierspieler nötig");
+    return;
+  }
+
+  if(useGroups){
+
+    await createGroups(list);
+
+    alert("✅ Gruppenphase gestartet");
+
+  } else {
+
+    if(list.length % 2 !== 0){
+      list.pop();
+      alert("⚠️ Ungerade Spieler – letzter entfernt");
+    }
+
+    await createKOBracket(list, boardCount);
+
+    alert("✅ KO Turnier gestartet");
+  }
+}
+
+
+// ==========================
+// ✅ MATCHES LÖSCHEN
 // ==========================
 async function clearMatches(){
 
@@ -227,68 +223,12 @@ async function clearMatches(){
 
 
 // ==========================
-// MATCH CREATE
+// ✅ GRUPPEN ERZEUGEN
 // ==========================
-async function createMatch(p1, p2, board, group="", round="group", status="waiting"){
-
-  const token = await getToken();
-
-  const body = {
-    fields:{
-      Title: `${p1} vs ${p2}`,
-      Player1: p1 || "",
-      Player2: p2 || "",
-      Score1: 501,
-      Score2: 501,
-      Legs1: 0,
-      Legs2: 0,
-      LegsToWin: 3,
-      BoardId: String(board),
-      Turn: "p1",
-      Status: status,
-      Group: group,
-      Winner: "",
-      Round: round,
-      NextMatchId: "",
-      NextSlot: ""
-    }
-  };
-
-  console.log("🔥 SEND:", body);
-
-  const res = await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
-    {
-      method:"POST",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify(body)
-    }
-  );
-
-  if(!res.ok){
-    const err = await res.text();
-    console.error("❌ MATCH ERROR:", err);
-  }
-}
-
-
-// ==========================
-// 🧩 GRUPPEN
-// ==========================
-async function createGroups(){
+async function createGroups(list){
 
   const groupSize = parseInt(document.getElementById("groupSize").value);
   const boardCount = parseInt(document.getElementById("boardCount").value);
-
-  let list = players.map(p => p.fields.Title);
-
-  if(list.length === 0){
-    console.error("Keine Spieler!");
-    return;
-  }
 
   list.sort(() => Math.random() - 0.5);
 
@@ -297,10 +237,6 @@ async function createGroups(){
   for(let i=0;i<list.length;i+=groupSize){
     groups.push(list.slice(i, i+groupSize));
   }
-
-  localStorage.setItem("groups", JSON.stringify(groups));
-
-  renderGroups(groups);
 
   let board = 1;
 
@@ -334,155 +270,13 @@ async function createGroups(){
 
 
 // ==========================
-function renderGroups(groups){
-
-  const div = document.getElementById("groupsView");
-
-  let html = "<h3>Gruppen</h3>";
-
-  groups.forEach((g,i)=>{
-
-    const name = String.fromCharCode(65+i);
-
-    html += `<b>Gruppe ${name}</b><br>`;
-    html += g.join("<br>");
-    html += "<br><br>";
-  });
-
-  div.innerHTML = html;
-}
-
-
+// ✅ MATCH ERSTELLEN
 // ==========================
-// 🏆 KO
-// ==========================
-async function createKOBracket(players, boardCount){
-
-  if(players.length < 2){
-    console.error("Zu wenige Spieler");
-    return;
-  }
-
-  if(players.length % 2 !== 0){
-    players.pop();
-  }
-
-  players.sort(()=>Math.random()-0.5);
-
-  let round = getRoundName(players.length);
-
-  let first = [];
-
-  for(let i=0;i<players.length;i+=2){
-    first.push({
-      Player1: players[i],
-      Player2: players[i+1],
-      Round: round
-    });
-  }
-
-  if(first.length === 0) return;
-
-  await createNextRounds(first, boardCount);
-}
-
-
-// ==========================
-function getNextRound(r){
-
-  if(r==="last16") return "quarter";
-  if(r==="quarter") return "semi";
-  if(r==="semi") return "final";
-
-  return "final";
-}
-
-
-// ==========================
-async function createNextRounds(firstRound, boardCount){
-
-  if(!firstRound || firstRound.length === 0){
-    console.error("❌ kein Start");
-    return;
-  }
-
-  let current = firstRound;
-
-  if(!current[0] || !current[0].Round){
-    console.error("❌ Round fehlt");
-    return;
-  }
-
-  let next = getNextRound(current[0].Round);
-
-  let board = 1;
-  let ids = [];
-
-  // ✅ WICHTIG: mehrere aktive Matches
-  let activeSlots = boardCount;
-
-  for(let i = 0; i < current.length; i++){
-
-    const m = current[i];
-
-    const status = i < activeSlots ? "active" : "waiting";
-
-    const id = await createMatchReturnId(
-      m.Player1,
-      m.Player2,
-      board,
-      "",
-      m.Round,
-      status
-    );
-
-    ids.push(id);
-
-    board++;
-    if(board > boardCount) board = 1;
-  }
-
-  // ==========================
-  // KO TREE
-  // ==========================
-  while(ids.length > 1){
-
-    let nextIds = [];
-
-    for(let i=0;i<ids.length;i+=2){
-
-      if(!ids[i+1]) break;
-
-      const id = await createMatchReturnId(
-        "",
-        "",
-        board,
-        "",
-        next,
-        "waiting"
-      );
-
-      await linkMatch(ids[i], id, "p1");
-      await linkMatch(ids[i+1], id, "p2");
-
-      nextIds.push(id);
-
-      board++;
-      if(board > boardCount) board = 1;
-    }
-
-    ids = nextIds;
-    next = getNextRound(next);
-  }
-}
-
-
-// ==========================
-async function createMatchReturnId(p1,p2,board,group,round,status){
+async function createMatch(p1, p2, board, group="", round="group", status="waiting"){
 
   const token = await getToken();
 
-  const res = await fetch(
+  await fetch(
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
     {
       method:"POST",
@@ -492,7 +286,7 @@ async function createMatchReturnId(p1,p2,board,group,round,status){
       },
       body:JSON.stringify({
         fields:{
-          Title: p1 + " vs " + p2,
+          Title: `${p1} vs ${p2}`,
           Player1: p1,
           Player2: p2,
           Score1: 501,
@@ -500,53 +294,14 @@ async function createMatchReturnId(p1,p2,board,group,round,status){
           Legs1: 0,
           Legs2: 0,
           LegsToWin: 3,
-          BoardId: board,
+          BoardId: String(board),
           Turn: "p1",
           Status: status,
-          Group: "",
+          Group: group,
           Winner: "",
-          Round: round,
-          NextMatchId:"",
-          NextSlot:""
+          Round: round
         }
       })
     }
   );
-
-  const d = await res.json();
-  return d.id;
-}
-
-
-// ==========================
-async function linkMatch(fromId, toId, slot){
-
-  const token = await getToken();
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${fromId}/fields`,
-    {
-      method:"PATCH",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        NextMatchId: toId,
-        NextSlot: slot
-      })
-    }
-  );
-}
-
-
-// ==========================
-function getRoundName(count){
-
-  if(count === 16) return "last16";
-  if(count === 8) return "quarter";
-  if(count === 4) return "semi";
-  if(count === 2) return "final";
-
-  return "ko";
 }
