@@ -67,10 +67,24 @@ function buildBoardSelect(){
 
   sel.innerHTML = "";
 
-  const boardCount = parseInt(localStorage.getItem("boardCount")) || 2;
+  // ✅ ALLE Boards aus Matches holen
+  const boards = [...new Set(
+    matches
+      .map(m => m.fields?.BoardId)
+      .filter(b => b !== null && b !== "" && b !== undefined)
+  )];
 
-  for(let i=1;i<=boardCount;i++){
-    sel.innerHTML += `<option value="${i}">Board ${i}</option>`;
+  // ✅ sortieren
+  boards.sort((a,b) => Number(a) - Number(b));
+
+  // ✅ als Dropdown einbauen
+  boards.forEach(b => {
+    sel.innerHTML += `<option value="${b}">Board ${b}</option>`;
+  });
+
+  // fallback (wenn nichts da)
+  if(boards.length === 0){
+    sel.innerHTML = `<option value="1">Board 1</option>`;
   }
 
   sel.onchange = loadMatch;
