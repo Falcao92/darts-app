@@ -566,5 +566,34 @@ async function handleSemiFinals(){
   await fillBoards();
 }
 
+async function endMatch(){
 
+  if(!currentMatch){
+    alert("Kein Spiel geladen");
+    return;
+  }
+
+  const confirmEnd = confirm("Match wirklich beenden?");
+  if(!confirmEnd) return;
+
+  const token = await getToken();
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${currentMatch.id}/fields`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        Status: "finished",
+        BoardId: null
+      })
+    }
+  );
+
+  // ✅ neu laden
+  await reload();
+}
 
