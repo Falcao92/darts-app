@@ -267,13 +267,13 @@ async function finishMatch(winner,l1,l2){
         Authorization:`Bearer ${token}`,
         "Content-Type":"application/json"
       },
-      body:JSON.stringify({
-        Legs1:l1,
-        Legs2:l2,
-        Winner:winner,
-        Status:"finished",
-        BoardId:"" // ✅ WICHTIG
-      })
+    body:JSON.stringify({
+  Legs1:l1,
+  Legs2:l2,
+  Winner:winner,
+  Status:"finished",
+  BoardId:null // ✅ FIX
+})
     }
   );
 
