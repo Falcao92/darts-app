@@ -36,9 +36,26 @@ function getListName(){
 
 // ==========================
 async function refreshMatches(){
-  matches = await getList(getListName()) || [];
-}
 
+  const all = await getList("Matches");
+
+  matches = all.filter(m => {
+
+    if(!m.fields) return false;
+
+    // ✅ TRAINING
+    if(mode === "training"){
+      return m.fields.Mode === "training";
+    }
+
+    // ✅ TURNIER
+    if(mode === "tournament"){
+      return m.fields.Mode === "tournament";
+    }
+
+    return false;
+  });
+}
 
 // ==========================
 // ✅ BOARDS FIXED
