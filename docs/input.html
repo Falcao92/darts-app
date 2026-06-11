@@ -5,39 +5,140 @@
 <meta charset="UTF-8">
 <title>Darts Input</title>
 
-<script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/graph.js"></script>
-<script src="js/input.js"></script>
+<script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.jsript src="js/auth.jsript src="jsript>
+<script src="js/input.jstyle>
+body{
+  background:#000;
+  color:white;
+  font-family:Arial;
+  text-align:center;
+}
 
-<style>
-body{ background:#000; color:white; text-align:center; font-family:Arial; }
+/* HEAD */
+h1{
+  font-size:32px;
+  color:#ff0033;
+  margin-top:10px;
+}
 
-#buttons{ display:flex; flex-wrap:wrap; justify-content:center; }
+/* SCORE */
+#score{
+  font-size:60px;
+  font-weight:bold;
+  margin:20px 0;
+}
 
-.btn{
-  width:60px;
-  height:40px;
-  margin:3px;
+/* PLAYER TEXT */
+#players{
+  font-size:22px;
+  margin-top:10px;
+}
+
+/* STATS */
+#liveAvg{
+  font-size:18px;
+  color:#ccc;
+}
+
+/* INPUTS */
+input{
+  font-size:22px;
+  width:80px;
+  text-align:center;
+  margin:5px;
+}
+
+/* BOARD + MODE */
+select{
+  font-size:16px;
+  padding:5px;
+  margin:5px;
+}
+
+/* DART INPUT GRID */
+#buttons{
+  display:grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap:10px;
+  padding:10px;
+  margin-top:20px;
+}
+
+/* BUTTONS */
+#buttons button{
+  font-size:20px;
+  padding:15px;
+  border:none;
+  border-radius:8px;
   background:#222;
-  border:1px solid red;
   color:white;
 }
 
+/* HOVER */
+#buttons button:hover{
+  background:#ff0033;
+}
+
+/* SAVE BUTTON */
+#saveBtn{
+  margin-top:20px;
+  font-size:26px;
+  padding:20px;
+  width:80%;
+  background:#00aa00;
+  color:white;
+  border:none;
+  border-radius:10px;
+}
+
+/* CONTROL BUTTONS */
+.controls{
+  margin-top:20px;
+}
+
+.controls button{
+  font-size:18px;
+  padding:15px;
+  margin:5px;
+  border:none;
+  border-radius:8px;
+}
+
+.reset{ background:#444; }
+.p1{ background:#0066ff; }
+.p2{ background:#cc6600; }
+
+/* MOBILE / TABLET */
+@media (max-width: 900px){
+
+  #buttons{
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  #score{
+    font-size:48px;
+  }
+
+  #buttons button{
+    font-size:18px;
+    padding:12px;
+  }
+}
 </style>
+
 </head>
 
 <body>
 
 <h1>🎯 Eingabe</h1>
 
-<!-- ✅ MODE SWITCH -->
+<!-- MODE -->
 <select id="modeSelect">
   <option value="tournament">Turnier</option>
   <option value="training">Training</option>
 </select>
 
-<br><br>
+<br>
 
 <select id="boardSelect"></select>
 
@@ -54,16 +155,16 @@ body{ background:#000; color:white; text-align:center; font-family:Arial; }
 <input id="d3">
 
 <h3>Darts</h3>
+
 <div id="buttons"></div>
 
-<br>
-<button onclick="submit()">Save</button>
-<br>
-<br><br>
+<button id="saveBtn" onclick="submit()">💾 SPEICHERN</button>
 
-<button onclick="resetMatch()">🔄 Reset Match</button>
-<button onclick="endMatchWithWinner('p1')">🏆 P1 gewinnt</button>
-<button onclick="endMatchWithWinner('p2')">🏆 P2 gewinnt</button>
+<div class="controls">
+  <button class="reset" onclick="resetMatch()">🔄 Reset</button>
+  <button class="p1" onclick="endMatchWithWinner('p1')">🏆 P1</button>
+  <button class="p2" onclick="endMatchWithWinner('p2')">🏆 P2</button>
+</div>
 
 </body>
 </html>
