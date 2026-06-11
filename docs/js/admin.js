@@ -458,8 +458,6 @@ async function createTrainingMatch(){
           Score2: 501,
           Legs1: 0,
           Legs2: 0,
-          LegsToWin: 3,
-          Turn: "p1",
           Status: "active",
           BoardId: String(board)
         }
