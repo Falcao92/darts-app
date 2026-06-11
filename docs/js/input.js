@@ -124,7 +124,27 @@ function updateUI(){
 
   const f = currentMatch.fields;
 
-  set("players", `${f.Player1} vs ${f.Player2}`);
+const p1 = document.getElementById("p1");
+const p2 = document.getElementById("p2");
+
+if(!p1 || !p2) return;
+
+p1.innerText = f.Player1;
+p2.innerText = f.Player2;
+
+// RESET
+p1.className = "";
+p2.className = "";
+
+// ✅ AKTIVER SPIELER
+if(f.Turn === "p1"){
+  p1.classList.add("activePlayer");
+  p2.classList.add("inactivePlayer");
+}else{
+  p2.classList.add("activePlayer");
+  p1.classList.add("inactivePlayer");
+}
+
   set("score", `${f.Score1} : ${f.Score2}`);
   set("legs", `Legs ${f.Legs1||0}:${f.Legs2||0}`);
   set("turn", f.Turn==="p1"?f.Player1:f.Player2);
