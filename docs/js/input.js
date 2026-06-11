@@ -258,7 +258,6 @@ async function update(s1,s2,turn,l1,l2){
 async function finishMatch(winner,l1,l2){
 
   const token=await getToken();
-  const f=currentMatch.fields;
 
   await fetch(
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${currentMatch.id}/fields`,
@@ -278,20 +277,25 @@ async function finishMatch(winner,l1,l2){
     }
   );
 
-  // ✅ WICHTIG: frisch laden
+  // ✅ FRISCH LADEN (1)
   await refreshMatches();
 
-  // ✅ KO START prüfen
-if(mode === "tournament"){
+  if(mode === "tournament"){
 
-  // ✅ KO Steuerung
-  await autoProgress();
+    // ✅ Gruppen → KO
+    await autoProgress();
 
-  // ✅ NEU: Halbfinal → Finale
-  await handleSemiFinals();
-}
+    // ✅ FRISCH LADEN (2)
+    await refreshMatches();
 
-  // ✅ neues Board belegen
+    // ✅ Halbfinal → Finale
+    await handleSemiFinals();
+
+    // ✅ FRISCH LADEN (3) ← DAS FEHLTE!
+    await refreshMatches();
+  }
+
+  // ✅ Boards korrekt belegen
   await fillBoards();
 
   await reload();
@@ -488,7 +492,9 @@ async function create(p1,p2,round,board,token=null){
     }
   );
 }
-async function handleSemiFinals(){async function handleSemiFinal refreshMatches();
+async function handleSemiFinals(){
+
+  await refreshMatches();
 
   const semis = matches.filter(m => m.fields.Round === "semi");
   const finished = semis.filter(m => m.fields.Status === "finished");
@@ -496,7 +502,7 @@ async function handleSemiFinals(){async function handleSemiFinal refreshMatches(
   // ✅ erst wenn beide fertig
   if(finished.length !== 2) return;
 
-  // ✅ verhindern doppelte Erstellung
+  // ✅ doppelte Erstellung verhindern
   const existingFinal = matches.some(m => m.fields.Round === "final");
   if(existingFinal) return;
 
@@ -516,19 +522,18 @@ async function handleSemiFinals(){async function handleSemiFinal refreshMatches(
     losers.push(loser);
   });
 
-  console.log("Finale:", winners);
-  console.log("Platz 3:", losers);
+  console.log("Finale Spieler:", winners);
+  console.log("Spiel um Platz 3:", losers);
 
-  // ✅ Finale erzeugen
+  // ✅ Finale
   await create(winners[0], winners[1], "final");
 
-  // ✅ Spiel um Platz 3
+  // ✅ Platz 3
   await create(losers[0], losers[1], "third");
 
-  // ✅ GANZ WICHTIG → Boards vergeben
+  // ✅ GANZ WICHTIG → Boards füllen
   await fillBoards();
 }
-
 
 
 
