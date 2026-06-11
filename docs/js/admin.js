@@ -21,11 +21,17 @@ async function loadPlayers(){
   const p1 = document.getElementById("tp1");
   const p2 = document.getElementById("tp2");
 
-  if(trainingDiv) trainingDiv.innerHTML="";
-  if(p1) p1.innerHTML="";
-  if(p2) p2.innerHTML="";
+  trainingDiv.innerHTML="";
+  p1.innerHTML="";
+  p2.innerHTML="";
 
-  const trainingMatches = await getList("TrainingMatches");
+  // ✅ NUR NOCH Matches
+  const allMatches = await getList("Matches");
+
+  // 👉 nur Trainingsmatches filtern
+  const trainingMatches = allMatches.filter(m =>
+    m.fields && m.fields.Mode === "training"
+  );
 
   for(const p of players){
 
@@ -35,7 +41,6 @@ async function loadPlayers(){
 
     const stats = getPlayerStatsFromList(name, trainingMatches);
 
-    // 👥 Trainingsgruppe
     trainingDiv.innerHTML += `
       <div class="playerRow">
 
@@ -60,7 +65,6 @@ async function loadPlayers(){
       </div>
     `;
 
-    // 🎯 Trainings Dropdown
     if(mode === "training" || mode === "both"){
       p1.innerHTML += `<option value="${name}">${name}</option>`;
       p2.innerHTML += `<option value="${name}">${name}</option>`;
@@ -139,7 +143,6 @@ async function updatePlayerMode(id, newMode){
 function renderTournamentPlayers(){
 
   const div = document.getElementById("tournamentPlayers");
-  if(!div) return;
 
   div.innerHTML = "";
 
@@ -188,17 +191,23 @@ function addGuest(){
 
 
 // ==========================
-async function addPlayer(){
+// ✅ TRAINING MATCH (NEU!)
+// ==========================
+async function createTrainingMatch(){
 
-  const name = document.getElementById("playerInput").value.trim();
-  const type = document.getElementById("playerType").value;
+  const p1 = document.getElementById("tp1").value;
+  const p2 = document.getElementById("tp2").value;
+  const board = document.getElementById("tboard").value;
 
-  if(!name) return;
+  if(!p1 || !p2 || p1 === p2){
+    alert("❌ Ungültige Auswahl");
+    return;
+  }
 
   const token = await getToken();
 
   await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Players/items`,
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
     {
       method:"POST",
       headers:{
@@ -207,32 +216,24 @@ async function addPlayer(){
       },
       body:JSON.stringify({
         fields:{
-          Title: name,
-          Mode: type
+          Title: `${p1} vs ${p2}`,
+          Player1: p1,
+          Player2: p2,
+          Score1: 501,
+          Score2: 501,
+          Legs1: 0,
+          Legs2: 0,
+          LegsToWin: 3,
+          Turn: "p1",
+          Status: "active",
+          BoardId: String(board),
+          Mode: "training"   // ✅ entscheidend
         }
       })
     }
   );
 
-  document.getElementById("playerInput").value="";
-  await loadPlayers();
-}
-
-
-// ==========================
-async function deletePlayer(id){
-
-  const token = await getToken();
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Players/items/${id}`,
-    {
-      method:"DELETE",
-      headers:{ Authorization:`Bearer ${token}` }
-    }
-  );
-
-  await loadPlayers();
+  alert("✅ Trainingsspiel gestartet");
 }
 
 
@@ -285,111 +286,7 @@ async function clearMatches(){
 
 
 // ==========================
-// 🧩 GRUPPEN
-// ==========================
-async function createGroups(list){
-
-  const groupSize = parseInt(document.getElementById("groupSize").value);
-
-  let shuffled = [...list].sort(() => Math.random() - 0.5);
-
-  let groups = [];
-
-  for(let i=0;i<shuffled.length;i+=groupSize){
-    groups.push(shuffled.slice(i, i+groupSize));
-  }
-
-  let firstMatches = [];
-
-  for(let g = 0; g < groups.length; g++){
-
-    const groupId = String.fromCharCode(65 + g);
-    const group = groups[g];
-
-    for(let i=0;i<group.length;i++){
-      for(let j=i+1;j<group.length;j++){
-
-        await createMatch(
-          group[i],
-          group[j],
-          "",
-          groupId,
-          "group",
-          "waiting"
-        );
-      }
-    }
-  }
-
-  // ✅ erste Spiele starten
-  await activateFirstMatches();
-}
-
-
-// ==========================
-async function activateFirstMatches(){
-
-  const token = await getToken();
-  const matches = await getList("Matches");
-
-  const boardCount = parseInt(localStorage.getItem("boardCount")) || 2;
-
-  const first = matches
-    .filter(m => m.fields.Status === "waiting")
-    .slice(0, boardCount);
-
-  for(let i = 0; i < first.length; i++){
-
-    await fetch(
-      `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${first[i].id}/fields`,
-      {
-        method:"PATCH",
-        headers:{
-          Authorization:`Bearer ${token}`,
-          "Content-Type":"application/json"
-        },
-        body:JSON.stringify({
-          Status:"active",
-          BoardId: String(i+1) // ✅ DAS FEHLTE!
-        })
-      }
-    );
-  }
-}
-
-
-
-// ==========================
-// 🏆 KO
-// ==========================
-async function createKOBracket(players){
-
-  players = [...players];
-
-  if(players.length % 2 !== 0){
-    players.pop();
-  }
-
-  players.sort(() => Math.random() - 0.5);
-
-  for(let i=0;i<players.length;i+=2){
-
-    await createMatch(
-      players[i],
-      players[i+1],
-      "",
-      "",
-      "ko",
-      "waiting"
-    );
-  }
-
-  await activateFirstMatches();
-}
-
-
-// ==========================
-// ✅ MATCH ERSTELLEN
+// ✅ MATCH ERSTELLEN (NEU)
 // ==========================
 async function createMatch(p1, p2, board="", group="", round="group", status="waiting"){
 
@@ -413,73 +310,15 @@ async function createMatch(p1, p2, board="", group="", round="group", status="wa
           Legs1: 0,
           Legs2: 0,
           LegsToWin: 3,
-          BoardId: null,   // ✅ KEIN festes Board
+          BoardId: null,
           Turn: "p1",
           Status: status,
           Group: group,
           Winner: "",
-          Round: round
+          Round: round,
+          Mode: "tournament"   // ✅ NEU
         }
       })
     }
   );
-}
-
-// ==========================
-// ✅ TRAINING MATCH STARTEN
-// ==========================
-async function createTrainingMatch(){
-
-  const p1 = document.getElementById("tp1").value;
-  const p2 = document.getElementById("tp2").value;
-  const board = document.getElementById("tboard").value;
-
-  if(!p1 || !p2 || p1 === p2){
-    alert("❌ Ungültige Auswahl");
-    return;
-  }
-
-  const token = await getToken();
-
-  const body = {
-    fields:{
-      Title: `${p1} vs ${p2}`,
-      Player1: p1,
-      Player2: p2,
-      Score1: 501,
-      Score2: 501,
-      Legs1: 0,
-      Legs2: 0,
-
-      // ✅ nur hinzufügen wenn sicher!
-      LegsToWin: 3,
-      Turn: "p1",
-
-      Status: "active",
-      BoardId: String(board)
-    }
-  };
-
-  console.log("TRAINING SEND:", body);
-
-  const res = await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/TrainingMatches/items`,
-    {
-      method:"POST",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify(body)
-    }
-  );
-
-  if(!res.ok){
-    const err = await res.text();
-    console.error("❌ TRAINING ERROR:", err);
-    alert("Fehler beim Starten (Console öffnen!)");
-    return;
-  }
-
-  alert("✅ Trainingsspiel gestartet");
 }
