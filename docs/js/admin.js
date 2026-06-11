@@ -424,3 +424,5 @@ async function createMatch(p1, p2, board="", group="", round="group", status="wa
     }
   );
 }
+
+await activateFirstMatches();
