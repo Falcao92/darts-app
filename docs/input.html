@@ -5,8 +5,14 @@
 <meta charset="UTF-8">
 <title>Darts Input</title>
 
-<script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.jsript src="js/auth.jsript src="jsript>
-<script src="js/input.jstyle>
+<!-- ✅ SCRIPTS KORREKT -->
+<script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/graph.js"></script>
+<script src="js/input.js"></script>
+
+<!-- ✅ STYLE KORREKT -->
+<style>
 body{
   background:#000;
   color:white;
@@ -14,27 +20,23 @@ body{
   text-align:center;
 }
 
-/* HEAD */
 h1{
   font-size:32px;
   color:#ff0033;
   margin-top:10px;
 }
 
-/* SCORE */
 #score{
   font-size:60px;
   font-weight:bold;
   margin:20px 0;
 }
 
-/* PLAYER TEXT */
 #players{
   font-size:22px;
   margin-top:10px;
 }
 
-/* STATS */
 #liveAvg{
   font-size:18px;
   color:#ccc;
@@ -48,14 +50,14 @@ input{
   margin:5px;
 }
 
-/* BOARD + MODE */
+/* SELECT */
 select{
   font-size:16px;
   padding:5px;
   margin:5px;
 }
 
-/* DART INPUT GRID */
+/* BUTTON GRID */
 #buttons{
   display:grid;
   grid-template-columns: repeat(8, 1fr);
@@ -64,7 +66,6 @@ select{
   margin-top:20px;
 }
 
-/* BUTTONS */
 #buttons button{
   font-size:20px;
   padding:15px;
@@ -74,12 +75,11 @@ select{
   color:white;
 }
 
-/* HOVER */
 #buttons button:hover{
   background:#ff0033;
 }
 
-/* SAVE BUTTON */
+/* SAVE */
 #saveBtn{
   margin-top:20px;
   font-size:26px;
@@ -91,7 +91,6 @@ select{
   border-radius:10px;
 }
 
-/* CONTROL BUTTONS */
 .controls{
   margin-top:20px;
 }
@@ -108,9 +107,8 @@ select{
 .p1{ background:#0066ff; }
 .p2{ background:#cc6600; }
 
-/* MOBILE / TABLET */
+/* TABLET */
 @media (max-width: 900px){
-
   #buttons{
     grid-template-columns: repeat(5, 1fr);
   }
@@ -132,7 +130,6 @@ select{
 
 <h1>🎯 Eingabe</h1>
 
-<!-- MODE -->
 <select id="modeSelect">
   <option value="tournament">Turnier</option>
   <option value="training">Training</option>
@@ -150,9 +147,9 @@ select{
 
 <br>
 
-<input id="d1">
-<input id="d2">
-<input id="d3">
+<input id="d1" autocomplete="off">
+<input id="d2" autocomplete="off">
+<input id="d3" autocomplete="off">
 
 <h3>Darts</h3>
 
