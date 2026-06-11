@@ -307,7 +307,11 @@ async function fillBoards(){
 
   if(waiting.length === 0) return;
 
-  let usedBoards = active.map(m => m.fields.BoardId);
+
+let usedBoards = active
+  .map(m => m.fields.BoardId)
+  .filter(b => b !== null && b !== undefined && b !== "");
+
   let freeBoards = [];
 
   for(let i=1; i<=boardCount; i++){
@@ -386,6 +390,7 @@ async function autoProgress(){
   if(allFinished){
     console.log("🔥 Gruppen fertig → starte KO");
     await startKO();
+    await fillBoards();
   }
 }
 
@@ -426,8 +431,8 @@ async function startKO(){
     const sorted = Object.entries(g)
       .sort((a,b) => b[1] - a[1]);
 
-    players.push(sorted[0][0]); // Platz 1
-    if(sorted[1]) players.push(sorted[1][0]); // Platz 2
+    players.push(sorted[0][0]);
+    if(sorted[1]) players.push(sorted[1][0]);
   });
 
   console.log("KO Spieler:", players);
@@ -437,10 +442,14 @@ async function startKO(){
     return;
   }
 
+  // ✅ Halbfinale erstellen (WAR schon korrekt)
   await create(players[0], players[1], "semi", 1);
   await create(players[2], players[3], "semi", 2);
 
   console.log("✅ KO erstellt");
+
+  // 🔥 DAS WAR DEIN FEHLENDER SCHRITT
+  await fillBoards();   // ✅ aktiviert beide Spiele
 }
 
 async function create(p1,p2,round,board,token=null){
