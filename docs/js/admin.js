@@ -389,7 +389,7 @@ async function createMatch(p1, p2, board, group="", round="group", status="activ
           Legs1: 0,
           Legs2: 0,
           LegsToWin: 3,
-          BoardId: String(board),
+          BoardId: ""
           Turn: "p1",
           Status: status,
           Group: group,
