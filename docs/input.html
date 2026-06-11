@@ -1,29 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-
-<meta charset="UTF-8">
+<meta charset="UTF-8"><html>
 <title>Darts Input</title>
 
-<!-- ✅ SCRIPTS KORREKT -->
+<!-- ✅ SCRIPTS -->
 <script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/graph.js"></script>
 <script src="js/input.js"></script>
 
-<!-- ✅ STYLE KORREKT -->
 <style>
 body{
   background:#000;
   color:white;
   font-family:Arial;
   text-align:center;
+  margin:0;
+  padding:10px;
 }
 
 h1{
   font-size:32px;
   color:#ff0033;
-  margin-top:10px;
+  margin:10px 0;
 }
 
 #score{
@@ -52,7 +52,6 @@ h1{
   color:#ccc;
 }
 
-/* INPUTS */
 input{
   font-size:22px;
   width:80px;
@@ -60,14 +59,12 @@ input{
   margin:5px;
 }
 
-/* SELECT */
 select{
   font-size:16px;
   padding:5px;
   margin:5px;
 }
 
-/* BUTTON GRID */
 #buttons{
   display:grid;
   grid-template-columns: repeat(8, 1fr);
@@ -83,13 +80,13 @@ select{
   border-radius:8px;
   background:#222;
   color:white;
+  cursor:pointer;
 }
 
 #buttons button:hover{
   background:#ff0033;
 }
 
-/* SAVE */
 #saveBtn{
   margin-top:20px;
   font-size:26px;
@@ -117,7 +114,6 @@ select{
 .p1{ background:#0066ff; }
 .p2{ background:#cc6600; }
 
-/* TABLET */
 @media (max-width: 900px){
   #buttons{
     grid-template-columns: repeat(5, 1fr);
@@ -149,7 +145,9 @@ select{
 
 <select id="boardSelect"></select>
 
-<div id="players"><div id  <span id="p1"></span>
+<!-- ✅ FIXED PLAYER BLOCK -->
+<div id="players">
+  <span id="p1"></span>
   <span> vs </span>
   <span id="p2"></span>
 </div>
