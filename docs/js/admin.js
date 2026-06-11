@@ -28,7 +28,7 @@ async function loadPlayers(){
   if(p1) p1.innerHTML="";
   if(p2) p2.innerHTML="";
 
-  players.forEach(p => {
+for(const p of players){
 
     const f = p.fields;
     const name = f.Title;
