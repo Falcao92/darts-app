@@ -1,4 +1,5 @@
 let players = [];
+let guests = [];
 
 window.addEventListener("DOMContentLoaded", async () => {
 
@@ -33,9 +34,8 @@ async function loadPlayers(){
     const name = f.Title;
     const mode = f.Mode || "training";
 
-    // ✅ TRAININGSGRUPPE (mit Dropdown!)
-    if(mode === "training" || mode === "both"){
-
+    // ✅ TRAININGSGRUPPE (ALLE SPIELER!)
+    if(trainingDiv){
       trainingDiv.innerHTML += `
         <div class="playerRow">
 
@@ -51,31 +51,23 @@ async function loadPlayers(){
 
         </div>
       `;
-
-      // Training Dropdown
-      if(p1) p1.innerHTML += `<option>${name}</option>`;
-      if(p2) p2.innerHTML += `<option>${name}</option>`;
     }
 
-    // ✅ TURNIER (Checkbox Auswahl)
-    if(mode === "tournament" || mode === "both"){
-
-      tournamentDiv.innerHTML += `
-        <div>
-          <label>
-            <input type="checkbox" class="tPlayer" value="${name}" checked>
-            ${name}
-          </label>
-        </div>
-      `;
+    // ✅ TRAINING DROPDOWN (nur Training/Both)
+    if(mode === "training" || mode === "both"){
+      if(p1) p1.innerHTML += `<option value="${name}">${name}</option>`;
+      if(p2) p2.innerHTML += `<option value="${name}">${name}</option>`;
     }
   });
+
+  // ✅ Turnierliste separat aufbauen
+  renderTournamentPlayers();
 }
 
-// ==========================
-// ✅ Update Player
-// ==========================
 
+// ==========================
+// ✅ MODE ÄNDERN
+// ==========================
 async function updatePlayerMode(id, newMode){
 
   const token = await getToken();
@@ -94,13 +86,115 @@ async function updatePlayerMode(id, newMode){
     }
   );
 
-  // ✅ UI neu laden
   await loadPlayers();
 }
 
 
 // ==========================
-// ✅ SPIELER ERSTELLEN
+// ✅ TRAINING MATCH
+// ==========================
+async function createTrainingMatch(){
+
+  const p1 = document.getElementById("tp1").value;
+  const p2 = document.getElementById("tp2").value;
+  const board = document.getElementById("tboard").value;
+
+  if(!p1 || !p2 || p1 === p2){
+    alert("❌ Ungültige Auswahl");
+    return;
+  }
+
+  const token = await getToken();
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/TrainingMatches/items`,
+    {
+      method:"POST",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        fields:{
+          Title: `${p1} vs ${p2}`,
+          Player1: p1,
+          Player2: p2,
+          Score1: 501,
+          Score2: 501,
+          Legs1: 0,
+          Legs2: 0,
+          Status: "active",
+          BoardId: board
+        }
+      })
+    }
+  );
+
+  alert("✅ Trainingsspiel gestartet");
+}
+
+
+// ==========================
+// ✅ TURNIERLISTE (MIT GÄSTEN)
+// ==========================
+function renderTournamentPlayers(){
+
+  const div = document.getElementById("tournamentPlayers");
+  if(!div) return;
+
+  div.innerHTML = "";
+
+  // ✅ gespeicherte Spieler
+  players.forEach(p => {
+
+    const f = p.fields;
+    const name = f.Title;
+    const mode = f.Mode || "training";
+
+    if(mode === "tournament" || mode === "both"){
+      div.innerHTML += `
+        <div>
+          <label>
+            <input type="checkbox" class="tPlayer" value="${name}" checked>
+            ${name}
+          </label>
+        </div>
+      `;
+    }
+  });
+
+  // ✅ Gäste (bleiben im Speicher)
+  guests.forEach(name => {
+    div.innerHTML += `
+      <div>
+        <label>
+          <input type="checkbox" class="tPlayer" value="${name}" checked>
+          ${name} (Gast)
+        </label>
+      </div>
+    `;
+  });
+}
+
+
+// ==========================
+// ✅ GAST SPIELER
+// ==========================
+function addGuest(){
+
+  const name = document.getElementById("guestInput").value.trim();
+  if(!name) return;
+
+  guests.push(name);
+
+  document.getElementById("guestInput").value="";
+
+  renderTournamentPlayers();
+}
+
+
+// ==========================
+// ✅ SPIELER ANLEGEN
 // ==========================
 async function addPlayer(){
 
@@ -151,73 +245,6 @@ async function deletePlayer(id){
 
 
 // ==========================
-// ✅ TRAINING MATCH
-// ==========================
-async function createTrainingMatch(){
-
-  const p1 = document.getElementById("tp1").value;
-  const p2 = document.getElementById("tp2").value;
-  const board = document.getElementById("tboard").value;
-
-  if(p1 === p2){
-    alert("Spieler müssen unterschiedlich sein");
-    return;
-  }
-
-  const token = await getToken();
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/TrainingMatches/items`,
-    {
-      method:"POST",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        fields:{
-          Title: `${p1} vs ${p2}`,
-          Player1: p1,
-          Player2: p2,
-          Score1: 501,
-          Score2: 501,
-          Legs1: 0,
-          Legs2: 0,
-          Status: "active",
-          BoardId: board
-        }
-      })
-    }
-  );
-
-  alert("✅ Trainingsspiel gestartet");
-}
-
-
-// ==========================
-// ✅ GAST SPIELER
-// ==========================
-function addGuest(){
-
-  const name = document.getElementById("guestInput").value;
-  if(!name) return;
-
-  const div = document.getElementById("tournamentPlayers");
-
-  div.innerHTML += `
-    <div>
-      <label>
-        <input type="checkbox" class="tPlayer" value="${name}" checked>
-        ${name} (Gast)
-      </label>
-    </div>
-  `;
-
-  document.getElementById("guestInput").value="";
-}
-
-
-// ==========================
 // ✅ TURNIER START
 // ==========================
 async function startTournament(){
@@ -233,7 +260,7 @@ async function startTournament(){
     .map(el => el.value);
 
   if(list.length < 2){
-    alert("Zu wenig Spieler");
+    alert("❌ Zu wenig Spieler");
     return;
   }
 
