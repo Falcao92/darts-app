@@ -33,8 +33,18 @@ h1{
 }
 
 #players{
-  font-size:22px;
+  font-size:24px;
   margin-top:10px;
+}
+
+.activePlayer{
+  background:#ff0033;
+  padding:5px 10px;
+  border-radius:6px;
+}
+
+.inactivePlayer{
+  opacity:0.6;
 }
 
 #liveAvg{
@@ -139,7 +149,11 @@ select{
 
 <select id="boardSelect"></select>
 
-<h2 id="players"></h2>
+<div id="players"><div id  <span id="p1"></span>
+  <span> vs </span>
+  <span id="p2"></span>
+</div>
+
 <h1 id="score"></h1>
 <div id="legs"></div>
 <div id="turn"></div>
