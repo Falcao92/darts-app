@@ -22,10 +22,10 @@ async function loadPlayers(){
   const p1 = document.getElementById("tp1");
   const p2 = document.getElementById("tp2");
 
-  trainingDiv.innerHTML="";
-  tournamentDiv.innerHTML="";
-  p1.innerHTML="";
-  p2.innerHTML="";
+  if(trainingDiv) trainingDiv.innerHTML="";
+  if(tournamentDiv) tournamentDiv.innerHTML="";
+  if(p1) p1.innerHTML="";
+  if(p2) p2.innerHTML="";
 
   players.forEach(p => {
 
@@ -33,21 +33,31 @@ async function loadPlayers(){
     const name = f.Title;
     const mode = f.Mode || "training";
 
-    // ✅ TRAININGSGRUPPE
+    // ✅ TRAININGSGRUPPE (mit Dropdown!)
     if(mode === "training" || mode === "both"){
 
       trainingDiv.innerHTML += `
         <div class="playerRow">
+
           <span>${name}</span>
+
+          <select onchange="updatePlayerMode('${p.id}', this.value)">
+            <option value="training" ${mode==="training"?"selected":""}>Training</option>
+            <option value="both" ${mode==="both"?"selected":""}>Beides</option>
+            <option value="tournament" ${mode==="tournament"?"selected":""}>Turnier</option>
+          </select>
+
           <button onclick="deletePlayer('${p.id}')">❌</button>
+
         </div>
       `;
 
-      p1.innerHTML += `<option>${name}</option>`;
-      p2.innerHTML += `<option>${name}</option>`;
+      // Training Dropdown
+      if(p1) p1.innerHTML += `<option>${name}</option>`;
+      if(p2) p2.innerHTML += `<option>${name}</option>`;
     }
 
-    // ✅ TURNIER
+    // ✅ TURNIER (Checkbox Auswahl)
     if(mode === "tournament" || mode === "both"){
 
       tournamentDiv.innerHTML += `
@@ -60,6 +70,32 @@ async function loadPlayers(){
       `;
     }
   });
+}
+
+// ==========================
+// ✅ Update Player
+// ==========================
+
+async function updatePlayerMode(id, newMode){
+
+  const token = await getToken();
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Players/items/${id}/fields`,
+    {
+      method:"PATCH",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        Mode: newMode
+      })
+    }
+  );
+
+  // ✅ UI neu laden
+  await loadPlayers();
 }
 
 
