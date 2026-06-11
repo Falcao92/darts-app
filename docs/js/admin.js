@@ -18,66 +18,110 @@ async function loadPlayers(){
   players = await getList("Players");
 
   const trainingDiv = document.getElementById("trainingPlayers");
-  const tournamentDiv = document.getElementById("tournamentPlayers");
-
   const p1 = document.getElementById("tp1");
   const p2 = document.getElementById("tp2");
 
   if(trainingDiv) trainingDiv.innerHTML="";
-  if(tournamentDiv) tournamentDiv.innerHTML="";
   if(p1) p1.innerHTML="";
   if(p2) p2.innerHTML="";
 
-for(const p of players){
+  // ✅ Training Matches EINMAL laden
+  const trainingMatches = await getList("TrainingMatches");
+
+  for(const p of players){
 
     const f = p.fields;
     const name = f.Title;
     const mode = f.Mode || "training";
 
-    // ✅ TRAININGSGRUPPE (ALLE SPIELER!)
-    if(trainingDiv){
-   const stats = await getPlayerStats(name);
+    const stats = getPlayerStatsFromList(name, trainingMatches);
 
-trainingDiv.innerHTML += `
-  <div class="playerRow">
+    // ✅ Trainingsgruppe (ALLE Spieler)
+    trainingDiv.innerHTML += `
+      <div class="playerRow">
 
-    <span>
-      ${name}
-      <br>
-      <small>
-        Avg: ${stats.avg} |
-        180: ${stats.total180} |
-        CO: ${stats.co}%
-      </small>
-    </span>
+        <span>
+          ${name}
+          <br>
+          <small>
+            Avg: ${stats.avg} |
+            180: ${stats.total180} |
+            CO: ${stats.co}%
+          </small>
+        </span>
 
+        <select onchange="updatePlayerMode('${p.id}', this.value)">
+          <option value="training" ${mode==="training"?"selected":""}>Training</option>
+          <option value="both" ${mode==="both"?"selected":""}>Beides</option>
+          <option value="tournament" ${mode==="tournament"?"selected":""}>Turnier</option>
+        </select>
 
-          <select onchange="updatePlayerMode('${p.id}', this.value)">
-            <option value="training" ${mode==="training"?"selected":""}>Training</option>
-            <option value="both" ${mode==="both"?"selected":""}>Beides</option>
-            <option value="tournament" ${mode==="tournament"?"selected":""}>Turnier</option>
-          </select>
+        <button onclick="deletePlayer('${p.id}')">❌</button>
 
-          <button onclick="deletePlayer('${p.id}')">❌</button>
+      </div>
+    `;
 
-        </div>
-      `;
-    }
-
-    // ✅ TRAINING DROPDOWN (nur Training/Both)
+    // ✅ Training Dropdown
     if(mode === "training" || mode === "both"){
-      if(p1) p1.innerHTML += `<option value="${name}">${name}</option>`;
-      if(p2) p2.innerHTML += `<option value="${name}">${name}</option>`;
+      p1.innerHTML += `<option value="${name}">${name}</option>`;
+      p2.innerHTML += `<option value="${name}">${name}</option>`;
     }
-  });
+  }
 
-  // ✅ Turnierliste separat aufbauen
   renderTournamentPlayers();
 }
 
 
 // ==========================
-// ✅ MODE ÄNDERN
+// ✅ STATS (OPTIMIERT)
+// ==========================
+function getPlayerStatsFromList(name, matches){
+
+  let games = 0;
+  let wins = 0;
+  let totalPoints = 0;
+  let totalDarts = 0;
+  let total180 = 0;
+  let checkoutsMade = 0;
+  let checkoutAttempts = 0;
+
+  matches.forEach(m => {
+
+    const f = m.fields;
+
+    if(f.Player1 !== name && f.Player2 !== name) return;
+
+    games++;
+
+    if(f.Winner === name) wins++;
+
+    const score = (f.Player1 === name) ? f.Score1 : f.Score2;
+    totalPoints += (501 - (score || 501));
+
+    totalDarts += 30;
+
+    total180 += (f.Player1 === name)
+      ? (f["180_1"] || 0)
+      : (f["180_2"] || 0);
+
+    if(f["Checkout1"] || f["Checkout2"]){
+
+      if((f.Player1 === name && f["Checkout1"]) ||
+         (f.Player2 === name && f["Checkout2"])){
+        checkoutsMade++;
+      }
+
+      checkoutAttempts++;
+    }
+  });
+
+  const avg = games > 0 ? (totalPoints / totalDarts * 300).toFixed(1) : 0;
+  const co = checkoutAttempts > 0 ? ((checkoutsMade / checkoutAttempts)*100).toFixed(0) : 0;
+
+  return { games, wins, avg, total180, co };
+}
+
+
 // ==========================
 async function updatePlayerMode(id, newMode){
 
@@ -91,9 +135,7 @@ async function updatePlayerMode(id, newMode){
         Authorization:`Bearer ${token}`,
         "Content-Type":"application/json"
       },
-      body:JSON.stringify({
-        Mode: newMode
-      })
+      body:JSON.stringify({ Mode: newMode })
     }
   );
 
@@ -102,52 +144,6 @@ async function updatePlayerMode(id, newMode){
 
 
 // ==========================
-// ✅ TRAINING MATCH
-// ==========================
-async function createTrainingMatch(){
-
-  const p1 = document.getElementById("tp1").value;
-  const p2 = document.getElementById("tp2").value;
-  const board = document.getElementById("tboard").value;
-
-  if(!p1 || !p2 || p1 === p2){
-    alert("❌ Ungültige Auswahl");
-    return;
-  }
-
-  const token = await getToken();
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/TrainingMatches/items`,
-    {
-      method:"POST",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        fields:{
-          Title: `${p1} vs ${p2}`,
-          Player1: p1,
-          Player2: p2,
-          Score1: 501,
-          Score2: 501,
-          Legs1: 0,
-          Legs2: 0,
-          Status: "active",
-          BoardId: board
-        }
-      })
-    }
-  );
-
-  alert("✅ Trainingsspiel gestartet");
-}
-
-
-// ==========================
-// ✅ TURNIERLISTE (MIT GÄSTEN)
-// ==========================
 function renderTournamentPlayers(){
 
   const div = document.getElementById("tournamentPlayers");
@@ -155,7 +151,6 @@ function renderTournamentPlayers(){
 
   div.innerHTML = "";
 
-  // ✅ gespeicherte Spieler
   players.forEach(p => {
 
     const f = p.fields;
@@ -174,7 +169,6 @@ function renderTournamentPlayers(){
     }
   });
 
-  // ✅ Gäste (bleiben im Speicher)
   guests.forEach(name => {
     div.innerHTML += `
       <div>
@@ -189,8 +183,6 @@ function renderTournamentPlayers(){
 
 
 // ==========================
-// ✅ GAST SPIELER
-// ==========================
 function addGuest(){
 
   const name = document.getElementById("guestInput").value.trim();
@@ -204,8 +196,6 @@ function addGuest(){
 }
 
 
-// ==========================
-// ✅ SPIELER ANLEGEN
 // ==========================
 async function addPlayer(){
 
@@ -256,8 +246,6 @@ async function deletePlayer(id){
 
 
 // ==========================
-// ✅ TURNIER START
-// ==========================
 async function startTournament(){
 
   const boardCount = parseInt(document.getElementById("boardCount").value);
@@ -300,58 +288,4 @@ async function clearMatches(){
       }
     );
   }
-}
-
-async function getPlayerStats(name){
-
-  const matches = await getList("TrainingMatches");
-
-  let games = 0;
-  let wins = 0;
-  let totalPoints = 0;
-  let totalDarts = 0;
-  let total180 = 0;
-  let checkoutsMade = 0;
-  let checkoutAttempts = 0;
-
-  matches.forEach(m => {
-
-    const f = m.fields;
-
-    if(f.Player1 !== name && f.Player2 !== name) return;
-
-    games++;
-
-    if(f.Winner === name) wins++;
-
-    // ✅ TODO simpel (kann später verfeinert werden)
-    const score = (f.Player1 === name) ? f.Score1 : f.Score2;
-    totalPoints += (501 - score);
-
-    totalDarts += 30; // grob angenommen (3 darts * ~10 runden)
-
-    // future ready
-    if(f["180_1"] || f["180_2"]){
-      total180 += (f.Player1 === name) ? (f["180_1"]||0) : (f["180_2"]||0);
-    }
-
-    if(f["Checkout1"] || f["Checkout2"]){
-      if((f.Player1 === name && f["Checkout1"]) ||
-         (f.Player2 === name && f["Checkout2"])){
-        checkoutsMade++;
-      }
-      checkoutAttempts++;
-    }
-  });
-
-  const avg = games > 0 ? (totalPoints / totalDarts * 3 * 100).toFixed(1) : 0;
-  const co = checkoutAttempts > 0 ? ((checkoutsMade / checkoutAttempts)*100).toFixed(0) : 0;
-
-  return {
-    games,
-    wins,
-    avg,
-    total180,
-    co
-  };
 }
