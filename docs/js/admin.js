@@ -6,59 +6,65 @@ window.addEventListener("DOMContentLoaded", async () => {
   if (!ok) return;
 
   await loadPlayers();
-
-  // ✅ ENTER zum hinzufügen
-  const input = document.getElementById("playerInput");
-  if(input){
-    input.addEventListener("keypress", e => {
-      if(e.key === "Enter") addPlayer();
-    });
-  }
 });
 
 
 // ==========================
-// ✅ SPIELER LADEN (KERN)
+// ✅ SPIELER LADEN
 // ==========================
 async function loadPlayers(){
 
   players = await getList("Players");
 
-  const list = document.getElementById("playerList");
+  const trainingDiv = document.getElementById("trainingPlayers");
+  const tournamentDiv = document.getElementById("tournamentPlayers");
+
   const p1 = document.getElementById("tp1");
   const p2 = document.getElementById("tp2");
 
-  if(!list) return;
-
-  list.innerHTML = "";
-  if(p1) p1.innerHTML = "";
-  if(p2) p2.innerHTML = "";
+  trainingDiv.innerHTML="";
+  tournamentDiv.innerHTML="";
+  p1.innerHTML="";
+  p2.innerHTML="";
 
   players.forEach(p => {
 
     const f = p.fields;
     const name = f.Title;
-    const mode = f.Mode || "tournament";
+    const mode = f.Mode || "training";
 
-    // ✅ Anzeige im Admin
-    const div = document.createElement("div");
-    div.innerHTML = `
-      ${name} (${mode})
-      <button onclick="deletePlayer('${p.id}')">❌</button>
-    `;
-    list.appendChild(div);
-
-    // ✅ Training Spieler hinzufügen
+    // ✅ TRAININGSGRUPPE
     if(mode === "training" || mode === "both"){
-      if(p1) p1.innerHTML += `<option value="${name}">${name}</option>`;
-      if(p2) p2.innerHTML += `<option value="${name}">${name}</option>`;
+
+      trainingDiv.innerHTML += `
+        <div class="playerRow">
+          <span>${name}</span>
+          <button onclick="deletePlayer('${p.id}')">❌</button>
+        </div>
+      `;
+
+      p1.innerHTML += `<option>${name}</option>`;
+      p2.innerHTML += `<option>${name}</option>`;
+    }
+
+    // ✅ TURNIER
+    if(mode === "tournament" || mode === "both"){
+
+      tournamentDiv.innerHTML += `
+        <div>
+          <label>
+            <input type="checkbox" class="tPlayer" value="${name}" checked>
+            ${name}
+          </label>
+        </div>
+      `;
     }
   });
 }
 
 
 // ==========================
-// ✅ SPIELER HINZUFÜGEN
+// ✅ SPIELER ERSTELLEN
 // ==========================
 async function addPlayer(){
 
@@ -92,8 +98,6 @@ async function addPlayer(){
 
 
 // ==========================
-// ✅ SPIELER LÖSCHEN
-// ==========================
 async function deletePlayer(id){
 
   const token = await getToken();
@@ -102,9 +106,7 @@ async function deletePlayer(id){
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Players/items/${id}`,
     {
       method:"DELETE",
-      headers:{
-        Authorization:`Bearer ${token}`
-      }
+      headers:{ Authorization:`Bearer ${token}` }
     }
   );
 
@@ -113,7 +115,7 @@ async function deletePlayer(id){
 
 
 // ==========================
-// ✅ TRAINING START
+// ✅ TRAINING MATCH
 // ==========================
 async function createTrainingMatch(){
 
@@ -121,8 +123,8 @@ async function createTrainingMatch(){
   const p2 = document.getElementById("tp2").value;
   const board = document.getElementById("tboard").value;
 
-  if(!p1 || !p2 || p1 === p2){
-    alert("❌ Ungültige Auswahl");
+  if(p1 === p2){
+    alert("Spieler müssen unterschiedlich sein");
     return;
   }
 
@@ -146,8 +148,7 @@ async function createTrainingMatch(){
           Legs1: 0,
           Legs2: 0,
           Status: "active",
-          BoardId: board,
-          Date: new Date().toISOString()
+          BoardId: board
         }
       })
     }
@@ -158,52 +159,58 @@ async function createTrainingMatch(){
 
 
 // ==========================
+// ✅ GAST SPIELER
+// ==========================
+function addGuest(){
+
+  const name = document.getElementById("guestInput").value;
+  if(!name) return;
+
+  const div = document.getElementById("tournamentPlayers");
+
+  div.innerHTML += `
+    <div>
+      <label>
+        <input type="checkbox" class="tPlayer" value="${name}" checked>
+        ${name} (Gast)
+      </label>
+    </div>
+  `;
+
+  document.getElementById("guestInput").value="";
+}
+
+
+// ==========================
 // ✅ TURNIER START
 // ==========================
 async function startTournament(){
 
-  const useGroups = document.getElementById("useGroups").checked;
   const boardCount = parseInt(document.getElementById("boardCount").value);
+  const useGroups = document.getElementById("useGroups").checked;
 
   localStorage.setItem("boardCount", boardCount);
 
   await clearMatches();
 
-  // ✅ NUR TURNIERSPIELER VERWENDEN
-  let list = players
-    .filter(p => {
-      const m = p.fields.Mode;
-      return m === "tournament" || m === "both";
-    })
-    .map(p => p.fields.Title);
+  let list = [...document.querySelectorAll(".tPlayer:checked")]
+    .map(el => el.value);
 
   if(list.length < 2){
-    alert("❌ Mindestens 2 Turnierspieler nötig");
+    alert("Zu wenig Spieler");
     return;
   }
 
   if(useGroups){
-
     await createGroups(list);
-
-    alert("✅ Gruppenphase gestartet");
-
   } else {
-
-    if(list.length % 2 !== 0){
-      list.pop();
-      alert("⚠️ Ungerade Spieler – letzter entfernt");
-    }
-
     await createKOBracket(list, boardCount);
-
-    alert("✅ KO Turnier gestartet");
   }
+
+  alert("✅ Turnier gestartet");
 }
 
 
-// ==========================
-// ✅ MATCHES LÖSCHEN
 // ==========================
 async function clearMatches(){
 
@@ -219,89 +226,4 @@ async function clearMatches(){
       }
     );
   }
-}
-
-
-// ==========================
-// ✅ GRUPPEN ERZEUGEN
-// ==========================
-async function createGroups(list){
-
-  const groupSize = parseInt(document.getElementById("groupSize").value);
-  const boardCount = parseInt(document.getElementById("boardCount").value);
-
-  list.sort(() => Math.random() - 0.5);
-
-  let groups = [];
-
-  for(let i=0;i<list.length;i+=groupSize){
-    groups.push(list.slice(i, i+groupSize));
-  }
-
-  let board = 1;
-
-  for(let g=0; g<groups.length; g++){
-
-    const groupId = String.fromCharCode(65 + g);
-    const group = groups[g];
-
-    let first = true;
-
-    for(let a=0;a<group.length;a++){
-      for(let b=a+1;b<group.length;b++){
-
-        await createMatch(
-          group[a],
-          group[b],
-          board,
-          groupId,
-          "group",
-          first ? "active" : "waiting"
-        );
-
-        first = false;
-
-        board++;
-        if(board > boardCount) board = 1;
-      }
-    }
-  }
-}
-
-
-// ==========================
-// ✅ MATCH ERSTELLEN
-// ==========================
-async function createMatch(p1, p2, board, group="", round="group", status="waiting"){
-
-  const token = await getToken();
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
-    {
-      method:"POST",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        fields:{
-          Title: `${p1} vs ${p2}`,
-          Player1: p1,
-          Player2: p2,
-          Score1: 501,
-          Score2: 501,
-          Legs1: 0,
-          Legs2: 0,
-          LegsToWin: 3,
-          BoardId: String(board),
-          Turn: "p1",
-          Status: status,
-          Group: group,
-          Winner: "",
-          Round: round
-        }
-      })
-    }
-  );
 }
