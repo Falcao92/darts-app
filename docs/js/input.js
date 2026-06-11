@@ -282,9 +282,14 @@ async function finishMatch(winner,l1,l2){
   await refreshMatches();
 
   // ✅ KO START prüfen
-  if(mode === "tournament"){
-    await autoProgress();
-  }
+if(mode === "tournament"){
+
+  // ✅ KO Steuerung
+  await autoProgress();
+
+  // ✅ NEU: Halbfinal → Finale
+  await handleSemiFinals();
+}
 
   // ✅ neues Board belegen
   await fillBoards();
@@ -483,5 +488,47 @@ async function create(p1,p2,round,board,token=null){
     }
   );
 }
+async function handleSemiFinals(){async function handleSemiFinal refreshMatches();
+
+  const semis = matches.filter(m => m.fields.Round === "semi");
+  const finished = semis.filter(m => m.fields.Status === "finished");
+
+  // ✅ erst wenn beide fertig
+  if(finished.length !== 2) return;
+
+  // ✅ verhindern doppelte Erstellung
+  const existingFinal = matches.some(m => m.fields.Round === "final");
+  if(existingFinal) return;
+
+  let winners = [];
+  let losers = [];
+
+  finished.forEach(m => {
+
+    const f = m.fields;
+
+    winners.push(f.Winner);
+
+    const loser = (f.Player1 === f.Winner)
+      ? f.Player2
+      : f.Player1;
+
+    losers.push(loser);
+  });
+
+  console.log("Finale:", winners);
+  console.log("Platz 3:", losers);
+
+  // ✅ Finale erzeugen
+  await create(winners[0], winners[1], "final");
+
+  // ✅ Spiel um Platz 3
+  await create(losers[0], losers[1], "third");
+
+  // ✅ GANZ WICHTIG → Boards vergeben
+  await fillBoards();
+}
+
+
 
 
