@@ -105,13 +105,25 @@ function loadMatch(){
     m.fields.Status === "active"
   );
 
-  if(!currentMatch){
-    set("players","Kein Spiel");
-    set("score","-");
-    set("legs","-");
-    set("turn","-");
-    return;
+ if(!currentMatch){
+
+  const p1 = document.getElementById("p1");
+  const p2 = document.getElementById("p2");
+
+  if(p1 && p2){
+    p1.innerText = "Kein Spiel";
+    p2.innerText = "";
   }
+
+  set("score","-");
+  set("legs","-");
+  set("turn","-");
+
+  return;
+}
+
+console.log("Aktuelle Matches:", matches);
+console.log("Board:", board);
 
   updateUI();
 }
@@ -127,7 +139,10 @@ function updateUI(){
 const p1 = document.getElementById("p1");
 const p2 = document.getElementById("p2");
 
-if(!p1 || !p2) return;
+if(!p1 || !p2){
+  console.warn("Player UI fehlt");
+  return;
+}
 
 p1.innerText = f.Player1;
 p2.innerText = f.Player2;
