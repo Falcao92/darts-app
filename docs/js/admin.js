@@ -289,3 +289,114 @@ async function clearMatches(){
     );
   }
 }
+
+// ==========================
+// Gruppe erstellen für Turnier
+// ==========================
+async function createGroups(list){
+
+  const groupSize = parseInt(document.getElementById("groupSize").value);
+  const boardCount = parseInt(document.getElementById("boardCount").value);
+
+  let shuffled = [...list].sort(() => Math.random() - 0.5);
+
+  let groups = [];
+
+  for(let i=0;i<shuffled.length;i+=groupSize){
+    groups.push(shuffled.slice(i, i+groupSize));
+  }
+
+  let board = 1;
+
+  for(let g = 0; g < groups.length; g++){
+
+    const groupId = String.fromCharCode(65 + g);
+    const group = groups[g];
+
+    let first = true;
+
+    for(let i=0;i<group.length;i++){
+      for(let j=i+1;j<group.length;j++){
+
+        await createMatch(
+          group[i],
+          group[j],
+          board,
+          groupId,
+          "group",
+          first ? "active" : "waiting"
+        );
+
+        first = false;
+
+        board++;
+        if(board > boardCount) board = 1;
+      }
+    }
+  }
+}
+
+// KO Runde generieren
+async function createKOBracket(players, boardCount){
+
+  players = [...players];
+
+  if(players.length % 2 !== 0){
+    players.pop();
+  }
+
+  players.sort(() => Math.random() - 0.5);
+
+  let board = 1;
+
+  for(let i=0;i<players.length;i+=2){
+
+    await createMatch(
+      players[i],
+      players[i+1],
+      board,
+      "",
+      "ko",
+      "active"
+    );
+
+    board++;
+    if(board > boardCount) board = 1;
+  }
+}
+
+// Spiele generieren
+
+async function createMatch(p1, p2, board, group="", round="group", status="active"){
+
+  const token = await getToken();
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
+    {
+      method:"POST",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        fields:{
+          Title: `${p1} vs ${p2}`,
+          Player1: p1,
+          Player2: p2,
+          Score1: 501,
+          Score2: 501,
+          Legs1: 0,
+          Legs2: 0,
+          LegsToWin: 3,
+          BoardId: String(board),
+          Turn: "p1",
+          Status: status,
+          Group: group,
+          Winner: "",
+          Round: round
+        }
+      })
+    }
+  );
+}
