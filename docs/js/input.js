@@ -204,8 +204,7 @@ function isDouble(v){
 
 // ==========================
 async function submit(){
-let darts = f.DartsThrown || 0;
-darts += 3;
+
   if(!currentMatch) return;
 
   const f=currentMatch.fields;
