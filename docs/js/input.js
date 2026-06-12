@@ -24,7 +24,10 @@ async function init(){
       await refreshMatches();
 
       buildBoardSelect();
-      loadMatch();
+
+      if(typeof loadMatch === "function"){
+        loadMatch();
+      }
     };
   }
 
@@ -37,10 +40,14 @@ async function init(){
   await refreshMatches();
 
   buildBoardSelect();
-  createButtons();
-  loadMatch();
-}
 
+  // ✅ FIX
+  createButtons();
+
+  if(typeof loadMatch === "function"){
+    loadMatch();
+  }
+}
 
 // ==========================
 function getListName(){
