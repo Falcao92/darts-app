@@ -329,29 +329,36 @@ async function update(s1,s2,turn,l1,l2,darts){
 }
 
 // ==========================
-// ✅ KO LOGIK FINAL
+// KO-Logik
 async function progressKO(){
 
   const list = await getList("Matches");
   const token = await getToken();
 
-  const semis = list.filter(m=>m.fields.Round==="semi");
-  const finished = semis.filter(m=>m.fields.Status==="finished");
+  const semis = list.filter(m => m.fields.Round === "semi");
+  const finished = semis.filter(m => m.fields.Status === "finished");
 
-  if(finished.length!==2) return;
+  if(finished.length !== 2) return;
 
-  const final = list.find(m=>m.fields.Round==="final");
-  const third = list.find(m=>m.fields.Round==="third");
+  const final = list.find(m => m.fields.Round === "final");
+  const third = list.find(m => m.fields.Round === "third");
 
   if(!final || !third) return;
 
-  const winners=[];
-  const losers=[];
+  const winners = [];
+  const losers = [];
 
-  finished.forEach(m=>{
-    const f=m.fields;
+  finished.forEach(m => {
+
+    const f = m.fields;
+
     winners.push(f.Winner);
-    losers.push(f.Player1===f.Winner?f.Player2:f.Player1);
+
+    const loser = f.Player1 === f.Winner
+      ? f.Player2
+      : f.Player1;
+
+    losers.push(loser);
   });
 
   await fetch(
@@ -363,8 +370,8 @@ async function progressKO(){
         "Content-Type":"application/json"
       },
       body:JSON.stringify({
-        Player1:winners[0],
-        Player2:winners[1],
+        Player1: winners[0],
+        Player2: winners[1],
         Status:"waiting"
       })
     }
@@ -379,12 +386,83 @@ async function progressKO(){
         "Content-Type":"application/json"
       },
       body:JSON.stringify({
-        Player1:losers[0],
-        Player2:losers[1],
+        Player1: losers[0],
+        Player2: losers[1],
         Status:"waiting"
       })
     }
   );
+
+  console.log("✅ Finale gesetzt");
+
+  await fillBoards();
+}
+
+
+// ==========================
+//Start KO
+
+async function startKO(){
+
+  await refreshMatches();
+
+  // ❗ Verhindern doppelt
+  const exists = matches.some(m => m.fields?.Round === "semi");
+  if(exists){
+    console.log("KO existiert bereits");
+    return;
+  }
+
+  let groups = {};
+
+  // ✅ alle Gruppenspiele sammeln
+  matches
+    .filter(m => m.fields?.Round === "group")
+    .forEach(m => {
+
+      const f = m.fields;
+
+      if(!groups[f.Group]) groups[f.Group] = {};
+
+      if(!groups[f.Group][f.Player1]) groups[f.Group][f.Player1] = 0;
+      if(!groups[f.Group][f.Player2]) groups[f.Group][f.Player2] = 0;
+
+      // ✅ Punkte (Sieger bekommt 2)
+      if(f.Winner){
+        groups[f.Group][f.Winner] += 2;
+      }
+    });
+
+  let players = [];
+
+  // ✅ Top 2 pro Gruppe
+  Object.values(groups).forEach(g => {
+
+    const sorted = Object.entries(g)
+      .sort((a,b) => b[1] - a[1]);
+
+    if(sorted[0]) players.push(sorted[0][0]);
+    if(sorted[1]) players.push(sorted[1][0]);
+  });
+
+  console.log("KO Spieler:", players);
+
+  if(players.length < 4){
+    console.log("⛔ zu wenig Spieler für KO");
+    return;
+  }
+
+  // ✅ HALBFINALE
+  await create(players[0], players[1], "semi");
+  await create(players[2], players[3], "semi");
+
+  // 🔥 DAS WAR DEIN FEHLER → HINZUFÜGEN
+  await create("", "", "final");   // ✅ Finale Slot
+  await create("", "", "third");   // ✅ Spiel um Platz 3
+
+  console.log("✅ KO erstellt");
+
+  await fillBoards();
 }
 
 // ==========================
@@ -435,3 +513,94 @@ function reset(){
   d2.value="";
   d3.value="";
 }
+
+async function resetMatch(){
+
+  if(!currentMatch){
+    alert("Kein Spiel geladen");
+    return;
+  }
+
+  const confirmReset = confirm("Match wirklich zurücksetzen?");
+  if(!confirmReset) return;
+
+  const token = await getToken();
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${currentMatch.id}/fields`,
+    {
+      method:"PATCH",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        Score1:501,
+        Score2:501,
+        Legs1:0,
+        Legs2:0,
+        Turn:"p1"
+      })
+    }
+  );
+
+  await reload();
+}
+
+async function endMatchWithWinner(player){
+
+  if(!currentMatch){
+    alert("Kein Spiel geladen");
+    return;
+  }
+
+  const confirmEnd = confirm("Match beenden und Sieger setzen?");
+  if(!confirmEnd) return;
+
+  const f = currentMatch.fields;
+
+  const winner = player === "p1" ? f.Player1 : f.Player2;
+
+  let l1 = f.Legs1 || 0;
+  let l2 = f.Legs2 || 0;
+
+  if(player === "p1") l1++;
+  else l2++;
+
+  await finishMatch(winner,l1,l2);
+}
+
+async function endMatch(){
+
+  if(!currentMatch){
+    alert("Kein Spiel geladen");
+    return;
+  }
+
+  const confirmEnd = confirm("Match wirklich beenden?");
+  if(!confirmEnd) return;
+
+  const token = await getToken();
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${currentMatch.id}/fields`,
+    {
+      method:"PATCH",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        Status:"finished",
+        BoardId:null
+      })
+    }
+  );
+
+  await refreshMatches();
+  await progressKO();
+  await fillBoards();
+  await reload();
+}
+
+
