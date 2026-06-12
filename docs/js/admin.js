@@ -242,6 +242,9 @@ async function createTrainingMatch(){
 // ==========================
 async function startTournament(){
 
+  console.log("Turnier Spieler:", list);
+console.log("Boards:", boardCount);
+
   // ✅ Boards direkt aus Input holen
   const boardCount = parseInt(document.getElementById("boardCount").value) || 2;
 
