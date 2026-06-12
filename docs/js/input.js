@@ -347,14 +347,15 @@ async function autoProgress(){
     return;
   }
 
-  const koExists = matches.some(m =>
-    m.fields.Round === "semi"
-  );
+ const koReady = matches.some(m =>
+  m.fields.Round === "semi" &&
+  m.fields.Player1 && m.fields.Player2
+);
 
-  if(koExists){
-    console.log("KO bereits gestartet");
-    return;
-  }
+if(koReady){
+  console.log("KO bereits korrekt gestartet");
+  return;
+}
 
   console.log("🔥 START KO");
 
