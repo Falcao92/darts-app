@@ -328,7 +328,7 @@ async function update(s1,s2,turn,l1,l2,darts){
 // ✅ FIXED AUTO PROGRESS
 async function autoProgress(){
 
-  await refreshMatches();
+  
 
   const group = matches.filter(m =>
     m.fields && m.fields.Round === "group"
