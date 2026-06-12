@@ -177,11 +177,6 @@ function buildBoardSelect(){
 
 
 // ==========================
-// ✅ JETZT IST loadMatch GLOBAL!
-function loadMatch(){
-
-
-// ==========================
 function loadMatch(){
 
   const sel = document.getElementById("boardSelect");
