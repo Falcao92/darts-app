@@ -237,8 +237,10 @@ async function startTournament(){
 if(useGroups){
   await createGroups(list);
 
-  // ⚠ Nur initiale KO Slots erzeugen (leer)
-  await createKO([]);
+  // ✅ KEIN KO HIER!!!
+  alert("✅ Gruppenphase gestartet");
+}
+
 } else {
   await createKO(list);
 
@@ -292,26 +294,7 @@ async function createKO(players){
 }
 
 
-  //////////////
-//KO Generierung von Gruppen
-  ///////////
-async function generateKOFromGroups(){
 
-  const matches = await getList("Matches");
-
-  // 👉 nur Gruppenspiele
-  const groupMatches = matches.filter(m =>
-    m.fields && m.fields.Round === "group"
-  );
-
-  if(groupMatches.length === 0) return;
-
-  // ✅ prüfen ob alle fertig
-  const allFinished = groupMatches.every(m =>
-    m.fields.Status === "finished"
-  );
-
-  if(!allFinished) return;
 
   // ==========================
   // ✅ GRUPPEN AUSWERTEN
