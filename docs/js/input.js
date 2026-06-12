@@ -483,14 +483,14 @@ async function finishMatch(winner,l1,l2){
 
   await refreshMatches();
 
-  if(mode === "tournament"){
+ if(mode === "tournament"){
 
-    // ✅ NEU
-    await autoProgress();    // Gruppen → KO
-    await progressKO();      // Halbfinal → Finale
+  // 🔥 Reihenfolge ist entscheidend
+  await autoProgress();     // Gruppen → KO
+  await progressKO();       // Semi → Finale
+  await fillBoards();       // neue Matches starten
+}
 
-    await refreshMatches();
-  }
 
   await fillBoards();
   await reload();
@@ -537,13 +537,22 @@ async function autoProgress(){
     m.fields.Status === "finished"
   );
 
-  console.log("GROUP STATUS:", group.map(g => g.fields.Status));
+  if(!allFinished) return;
 
-  if(allFinished){
-    console.log("🔥 Gruppen fertig → starte KO");
-    await startKO();
-    await fillBoards();
+  // ❗ verhindern dass KO mehrfach erstellt wird
+  const koExists = matches.some(m =>
+    m.fields.Round === "semi"
+  );
+
+  if(koExists){
+    console.log("KO bereits gestartet");
+    return;
   }
+
+  console.log("🔥 Gruppen fertig → starte KO");
+
+  await startKO();
+}
 }
 
 //KO_phase starten
