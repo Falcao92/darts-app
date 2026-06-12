@@ -43,19 +43,29 @@ async function refreshMatches(){
 
     if(!m.fields) return false;
 
+    const modeField = m.fields.Mode;
+
     // ✅ TRAINING
     if(mode === "training"){
-      return m.fields.Mode === "training";
+      return modeField === "training";
     }
 
     // ✅ TURNIER
     if(mode === "tournament"){
-      return m.fields.Mode === "tournament";
+
+      // ✅ FIX: wenn Mode fehlt → trotzdem Turnier
+      if(modeField === "tournament") return true;
+
+      if(!modeField && m.fields.Round) return true;
+
+      return false;
     }
 
     return false;
   });
+  console.log("MATCHES:", all);
 }
+
 
 // ==========================
 // ✅ BOARDS FIXED
