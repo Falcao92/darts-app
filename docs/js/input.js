@@ -328,7 +328,7 @@ async function update(s1,s2,turn,l1,l2,darts){
 // ✅ FIXED AUTO PROGRESS
 async function autoProgress(){
 
-  await refreshMatches();
+  // ❗ NICHT refreshMatches hier!
 
   const groupMatches = matches.filter(m =>
     m.fields && m.fields.Round === "group"
@@ -336,20 +336,27 @@ async function autoProgress(){
 
   if(groupMatches.length === 0) return;
 
+  console.log("Group Status:", groupMatches.map(m => m.fields.Status));
+
   const allFinished = groupMatches.every(m =>
-    m.fields.Status !== "active" &&
-    m.fields.Status !== "waiting"
+    m.fields.Status === "finished"
   );
 
-  if(!allFinished) return;
+  if(!allFinished){
+    console.log("⏳ Gruppen noch nicht fertig");
+    return;
+  }
 
   const koExists = matches.some(m =>
     m.fields.Round === "semi"
   );
 
-  if(koExists) return;
+  if(koExists){
+    console.log("KO bereits gestartet");
+    return;
+  }
 
-  console.log("🔥 Gruppen → KO");
+  console.log("🔥 START KO");
 
   await startKO();
 }
@@ -476,15 +483,21 @@ async function finishMatch(winner,l1,l2){
     }
   );
 
-  await new Promise(r=>setTimeout(r,300)); // ✅ FIX
-
+  // ✅ WICHTIG: NEU LADEN BEVOR LOGIK
   await refreshMatches();
+
+  // ✅ jetzt prüfen (mit aktuellen Daten!)
   await autoProgress();
+
+  // ✅ KO Fortsetzung
   await progressKO();
 
+  // ✅ Boards neu verteilen
   await fillBoards();
+
   await reload();
 }
+
 
 // ==========================
 async function reload(){
