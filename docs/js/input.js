@@ -150,34 +150,35 @@ function buildBoardSelect(){
 
   sel.innerHTML = "";
 
-  // ✅ ALLE Boards aus Matches holen
   const boards = [...new Set(
     matches
       .map(m => m.fields?.BoardId)
       .filter(b => b !== null && b !== "" && b !== undefined)
   )];
 
-  // ✅ sortieren
   boards.sort((a,b) => Number(a) - Number(b));
 
-  // ✅ als Dropdown einbauen
   boards.forEach(b => {
     sel.innerHTML += `<option value="${b}">Board ${b}</option>`;
   });
 
-  // fallback (wenn nichts da)
+  if(boards.length === 0){
 
-if(boards.length === 0){
+    const count = parseInt(localStorage.getItem("boardCount")) || 2;
 
-  const count = parseInt(localStorage.getItem("boardCount")) || 2;
-
-  for(let i=1; i<=count; i++){
-    sel.innerHTML += `<option value="${i}">Board ${i}</option>`;
+    for(let i=1; i<=count; i++){
+      sel.innerHTML += `<option value="${i}">Board ${i}</option>`;
+    }
   }
-}
 
-// ✅ IMMER aktiv!
-sel.onchange = loadMatch;
+  // ✅ IMMER aktiv!
+  sel.onchange = loadMatch;
+}   // ✅❗ DIESE KLAMMER HAT GEFEHLT
+
+
+// ==========================
+// ✅ JETZT IST loadMatch GLOBAL!
+function loadMatch(){
 
 
 // ==========================
