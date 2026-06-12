@@ -16,6 +16,78 @@ function getPlayerStatsFromList(){
   return { avg: 0, total180: 0, co: 0 };
 }
 
+
+// ==========================
+// ✅Trainingmatch
+// ==========================
+async function createTrainingMatch(){
+
+  const p1 = document.getElementById("tp1").value;
+  const p2 = document.getElementById("tp2").value;
+  const board = document.getElementById("tboard").value || "1";
+
+  if(!p1 || !p2 || p1 === p2){
+    alert("❌ Ungültige Auswahl");
+    return;
+  }
+
+  const token = await getToken();
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
+    {
+      method:"POST",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        fields:{
+          Title: `${p1} vs ${p2}`,
+          Player1: p1,
+          Player2: p2,
+          Score1: 501,
+          Score2: 501,
+          Legs1: 0,
+          Legs2: 0,
+          LegsToWin: 3,
+          Turn:"p1",
+          Status:"active",
+          BoardId: board,
+          Mode:"training"
+        }
+      })
+    }
+  );
+
+  alert("✅ Trainingsspiel gestartet");
+}
+
+
+// ==========================
+// ✅ Update Player
+// ==========================
+async function updatePlayerMode(id, newMode){
+
+  const token = await getToken();
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Players/items/${id}/fields`,
+    {
+      method:"PATCH",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        Mode: newMode
+      })
+    }
+  );
+
+  // neu laden
+  await loadPlayers();
+}
 // ==========================
 // ✅ Spieler hinzufügen
 // ==========================
