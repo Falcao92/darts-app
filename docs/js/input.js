@@ -553,7 +553,6 @@ async function autoProgress(){
 
   await startKO();
 }
-}
 
 //KO_phase starten
 
