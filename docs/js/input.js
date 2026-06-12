@@ -15,13 +15,26 @@ async function init(){
   if(modeSelect){
     modeSelect.onchange = async (e)=>{
       mode = e.target.value;
+
       await refreshMatches();
+
+      // ✅ NEU
+      await fillBoards();
+
+      await refreshMatches();
+
       buildBoardSelect();
       loadMatch();
     };
   }
 
   await refreshMatches();
+
+  // ✅ NEU (DER FIX!)
+  await fillBoards();
+
+  await refreshMatches();
+
   buildBoardSelect();
   createButtons();
   loadMatch();
@@ -96,9 +109,16 @@ function buildBoardSelect(){
   });
 
   // fallback (wenn nichts da)
-  if(boards.length === 0){
-    sel.innerHTML = `<option value="1">Board 1</option>`;
+
+if(boards.length === 0){
+
+  // ✅ NEU: Boards aus config erzeugen
+  const count = parseInt(localStorage.getItem("boardCount")) || 2;
+
+  for(let i=1; i<=count; i++){
+    sel.innerHTML += `<option value="${i}">Board ${i}</option>`;
   }
+
 
   sel.onchange = loadMatch;
 }
