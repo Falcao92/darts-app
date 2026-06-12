@@ -632,3 +632,4 @@ async function createMatch(p1, p2, board=null, group="", round="group", status="
     }
   );
 }
+}
