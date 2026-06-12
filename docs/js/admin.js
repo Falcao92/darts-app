@@ -294,6 +294,41 @@ async function clearMatches(){
   }
 }
 
+// ==========================
+// ✅ Turnier beenden
+// ==========================
+async function endTournament(){
+
+  const confirmEnd = confirm("Turnier wirklich beenden?");
+  if(!confirmEnd) return;
+
+  const token = await getToken();
+  const matches = await getList("Matches");
+
+  const tournamentMatches = matches.filter(m =>
+    m.fields && m.fields.Mode === "tournament"
+  );
+
+  for(const m of tournamentMatches){
+
+    await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${m.id}/fields`,
+      {
+        method:"PATCH",
+        headers:{
+          Authorization:`Bearer ${token}`,
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          Status:"finished",
+          BoardId:null
+        })
+      }
+    );
+  }
+
+  alert("✅ Turnier beendet");
+}
 
 // ==========================
 // ✅ MATCH ERSTELLEN (NEU)
