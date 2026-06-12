@@ -5,7 +5,6 @@ let mode = "tournament";
 window.addEventListener("DOMContentLoaded", init);
 
 
-// ==========================
 async function init(){
 
   const ok = await ensureLogin();
@@ -18,8 +17,9 @@ async function init(){
 
       await refreshMatches();
 
-      // ✅ NEU
-      await fillBoards();
+      if(typeof fillBoards === "function"){
+        await fillBoards();
+      }
 
       await refreshMatches();
 
@@ -30,8 +30,9 @@ async function init(){
 
   await refreshMatches();
 
-  // ✅ NEU (DER FIX!)
-  await fillBoards();
+  if(typeof fillBoards === "function"){
+    await fillBoards();
+  }
 
   await refreshMatches();
 
@@ -44,6 +45,55 @@ async function init(){
 // ==========================
 function getListName(){
   return mode === "training" ? "TrainingMatches" : "Matches";
+}
+
+// ==========================
+// ✅ BOARD VERWALTUNG (KERNELEMENT)
+// ==========================
+async function fillBoards(){
+
+  const boardCount = parseInt(localStorage.getItem("boardCount")) || 2;
+
+  const active = matches.filter(m => m.fields.Status === "active");
+  const waiting = matches.filter(m => m.fields.Status === "waiting");
+
+  if(waiting.length === 0) return;
+
+  let usedBoards = active
+    .map(m => m.fields.BoardId)
+    .filter(b => b !== null && b !== undefined && b !== "");
+
+  let freeBoards = [];
+
+  for(let i=1; i<=boardCount; i++){
+    if(!usedBoards.includes(String(i))){
+      freeBoards.push(String(i));
+    }
+  }
+
+  if(freeBoards.length === 0) return;
+
+  const token = await getToken();
+
+  for(let i=0; i<freeBoards.length; i++){
+
+    if(!waiting[i]) break;
+
+    await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${waiting[i].id}/fields`,
+      {
+        method:"PATCH",
+        headers:{
+          Authorization:`Bearer ${token}`,
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          Status:"active",
+          BoardId: freeBoards[i]
+        })
+      }
+    );
+  }
 }
 
 
@@ -444,58 +494,6 @@ async function finishMatch(winner,l1,l2){
   await reload();
 }
 
-
-// ==========================
-// ✅ BOARD VERWALTUNG (KERNELEMENT)
-// ==========================
-async function fillBoards(){
-
-  await refreshMatches();
-
-  const boardCount = parseInt(localStorage.getItem("boardCount")) || 2;
-
-  const active = matches.filter(m => m.fields.Status === "active");
-  const waiting = matches.filter(m => m.fields.Status === "waiting");
-
-  if(waiting.length === 0) return;
-
-
-let usedBoards = active
-  .map(m => m.fields.BoardId)
-  .filter(b => b !== null && b !== undefined && b !== "");
-
-  let freeBoards = [];
-
-  for(let i=1; i<=boardCount; i++){
-    if(!usedBoards.includes(String(i))){
-      freeBoards.push(String(i));
-    }
-  }
-
-  if(freeBoards.length === 0) return;
-
-  const token = await getToken();
-
-  for(let i=0; i<freeBoards.length; i++){
-
-    if(!waiting[i]) break;
-
-    await fetch(
-      `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${waiting[i].id}/fields`,
-      {
-        method:"PATCH",
-        headers:{
-          Authorization:`Bearer ${token}`,
-          "Content-Type":"application/json"
-        },
-        body:JSON.stringify({
-          Status:"active",
-          BoardId: freeBoards[i]
-        })
-      }
-    );
-  }
-}
 
 
 // ==========================
