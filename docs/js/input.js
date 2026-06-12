@@ -507,6 +507,93 @@ function reset(){
 }
 
 // ==========================
-async function resetMatch(){ ... }  // unverändert
-async function endMatchWithWinner(player){ ... }
-async function endMatch(){ ... }
+async function resetMatch(){
+
+  if(!currentMatch){
+    alert("Kein Spiel geladen");
+    return;
+  }
+
+  const confirmReset = confirm("Match wirklich zurücksetzen?");
+  if(!confirmReset) return;
+
+  const token = await getToken();
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${currentMatch.id}/fields`,
+    {
+      method:"PATCH",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        Score1:501,
+        Score2:501,
+        Legs1:0,
+        Legs2:0,
+        Turn:"p1"
+      })
+    }
+  );
+
+  await reload();
+}
+
+async function endMatchWithWinner(player){
+
+  if(!currentMatch){
+    alert("Kein Spiel geladen");
+    return;
+  }
+
+  const confirmEnd = confirm("Match beenden und Sieger setzen?");
+  if(!confirmEnd) return;
+
+  const f = currentMatch.fields;
+
+  const winner = player === "p1" ? f.Player1 : f.Player2;
+
+  let l1 = f.Legs1 || 0;
+  let l2 = f.Legs2 || 0;
+
+  if(player === "p1") l1++;
+  else l2++;
+
+  await finishMatch(winner,l1,l2);
+}
+
+
+async function endMatch(){
+
+  if(!currentMatch){
+    alert("Kein Spiel geladen");
+    return;
+  }
+
+  const confirmEnd = confirm("Match wirklich beenden?");
+  if(!confirmEnd) return;
+
+  const token = await getToken();
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${currentMatch.id}/fields`,
+    {
+      method:"PATCH",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        Status:"finished",
+        BoardId:null
+      })
+    }
+  );
+
+  await refreshMatches();
+  await progressKO();
+  await fillBoards();
+  await reload();
+}
+
