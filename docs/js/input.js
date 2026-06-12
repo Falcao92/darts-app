@@ -328,6 +328,42 @@ async function update(s1,s2,turn,l1,l2,darts){
   );
 }
 
+//AutoProgress
+
+async function autoProgress(){
+
+  await refreshMatches();
+
+  const groupMatches = matches.filter(m =>
+    m.fields && m.fields.Round === "group"
+  );
+
+  // ❗ keine Gruppen vorhanden → nichts tun
+  if(groupMatches.length === 0) return;
+
+  // ✅ prüfen ob ALLE fertig
+  const allFinished = groupMatches.every(m =>
+    m.fields.Status === "finished"
+  );
+
+  if(!allFinished) return;
+
+  console.log("🔥 Gruppen fertig → starte KO");
+
+  // ❗ verhindern doppelt
+  const koExists = matches.some(m =>
+    m.fields.Round === "semi"
+  );
+
+  if(koExists){
+    console.log("KO existiert bereits");
+    return;
+  }
+
+  await startKO();
+}
+
+
 // ==========================
 // KO-Logik
 async function progressKO(){
