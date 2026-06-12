@@ -328,17 +328,17 @@ async function update(s1,s2,turn,l1,l2,darts){
 // ✅ FIXED AUTO PROGRESS
 async function autoProgress(){
 
-  // ❗ NICHT refreshMatches hier!
+  await refreshMatches();
 
-  const groupMatches = matches.filter(m =>
+  const group = matches.filter(m =>
     m.fields && m.fields.Round === "group"
   );
 
-  if(groupMatches.length === 0) return;
+  if(group.length === 0) return;
 
-  console.log("Group Status:", groupMatches.map(m => m.fields.Status));
+  console.log("GROUP STATUS:", group.map(g => g.fields.Status));
 
-  const allFinished = groupMatches.every(m =>
+  const allFinished = group.every(m =>
     m.fields.Status === "finished"
   );
 
@@ -347,17 +347,19 @@ async function autoProgress(){
     return;
   }
 
- const koReady = matches.some(m =>
-  m.fields.Round === "semi" &&
-  m.fields.Player1 && m.fields.Player2
-);
+  // ❗ wichtig: nur blockieren wenn echte semis da sind
+  const realSemis = matches.some(m =>
+    m.fields.Round === "semi" &&
+    m.fields.Player1 &&
+    m.fields.Player2
+  );
 
-if(koReady){
-  console.log("KO bereits korrekt gestartet");
-  return;
-}
+  if(realSemis){
+    console.log("KO bereits korrekt gestartet");
+    return;
+  }
 
-  console.log("🔥 START KO");
+  console.log("🔥 Gruppen fertig → starte KO");
 
   await startKO();
 }
@@ -477,6 +479,8 @@ async function finishMatch(winner,l1,l2){
         "Content-Type":"application/json"
       },
       body:JSON.stringify({
+        Legs1:l1,
+        Legs2:l2,
         Winner:winner,
         Status:"finished",
         BoardId:null
@@ -484,18 +488,19 @@ async function finishMatch(winner,l1,l2){
     }
   );
 
-  // ✅ WICHTIG: NEU LADEN BEVOR LOGIK
+  // ✅ exakt dein alter funktionierender Flow
   await refreshMatches();
 
-  // ✅ jetzt prüfen (mit aktuellen Daten!)
-  await autoProgress();
+  if(mode === "tournament"){
 
-  // ✅ KO Fortsetzung
-  await progressKO();
+    await autoProgress();        // Gruppen → KO
+    await refreshMatches();      // ❗ WICHTIG
 
-  // ✅ Boards neu verteilen
+    await handleSemiFinals();    // Semi → Final
+    await refreshMatches();      // ❗ WICHTIG
+  }
+
   await fillBoards();
-
   await reload();
 }
 
