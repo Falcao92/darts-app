@@ -44,26 +44,29 @@ async function refreshMatches(){
     if(!m.fields) return false;
 
     const modeField = m.fields.Mode;
+    const round = m.fields.Round;
 
     // ✅ TRAINING
     if(mode === "training"){
       return modeField === "training";
     }
 
-    // ✅ TURNIER
+    // ✅ TURNIER (ROBUST)
     if(mode === "tournament"){
 
-      // ✅ FIX: wenn Mode fehlt → trotzdem Turnier
+      // explizit Turnier
       if(modeField === "tournament") return true;
 
-      if(!modeField && m.fields.Round) return true;
+      // fallback: alles mit Round = Turnier
+      if(round) return true;
 
       return false;
     }
 
     return false;
   });
-  console.log("MATCHES:", all);
+
+  console.log("FILTERED MATCHES:", matches);
 }
 
 
