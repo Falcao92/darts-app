@@ -2,10 +2,8 @@ let players = [];
 let guests = [];
 
 window.addEventListener("DOMContentLoaded", async () => {
-
   const ok = await ensureLogin();
   if (!ok) return;
-
   await loadPlayers();
 });
 
@@ -25,10 +23,8 @@ async function loadPlayers(){
   p1.innerHTML="";
   p2.innerHTML="";
 
-  // ✅ NUR NOCH Matches
   const allMatches = await getList("Matches");
 
-  // 👉 nur Trainingsmatches filtern
   const trainingMatches = allMatches.filter(m =>
     m.fields && m.fields.Mode === "training"
   );
@@ -43,15 +39,9 @@ async function loadPlayers(){
 
     trainingDiv.innerHTML += `
       <div class="playerRow">
-
         <span>
-          ${name}
-          <br>
-          <small>
-            Avg: ${stats.avg} |
-            180: ${stats.total180} |
-            CO: ${stats.co}%
-          </small>
+          ${name}<br>
+          <small>Avg: ${stats.avg} | 180: ${stats.total180} | CO: ${stats.co}%</small>
         </span>
 
         <select onchange="updatePlayerMode('${p.id}', this.value)">
@@ -59,9 +49,6 @@ async function loadPlayers(){
           <option value="both" ${mode==="both"?"selected":""}>Beides</option>
           <option value="tournament" ${mode==="tournament"?"selected":""}>Turnier</option>
         </select>
-
-        <button onclick="deletePlayer('${p.id}')">❌</button>
-
       </div>
     `;
 
@@ -76,122 +63,101 @@ async function loadPlayers(){
 
 
 // ==========================
-// ✅ STATS
+// ✅ TURNIER START
 // ==========================
-function getPlayerStatsFromList(name, matches){
+async function startTournament(){
 
-  let totalPoints = 0;
-  let totalDarts = 0;
-  let total180 = 0;
-  let checkoutsMade = 0;
-  let checkoutAttempts = 0;
+  const boardCount = parseInt(document.getElementById("boardCount").value) || 2;
+  const useGroups = document.getElementById("useGroups").checked;
 
-  matches.forEach(m => {
+  localStorage.setItem("boardCount", boardCount);
 
-    const f = m.fields;
+  await clearMatches();
 
-    if(f.Player1 !== name && f.Player2 !== name) return;
+  let list = [...document.querySelectorAll(".tPlayer:checked")]
+    .map(el => el.value);
 
-    const score = (f.Player1 === name) ? f.Score1 : f.Score2;
-    totalPoints += (501 - (score || 501));
-    totalDarts += 30;
+  if(list.length < 2){
+    alert("❌ Zu wenig Spieler");
+    return;
+  }
 
-    total180 += (f.Player1 === name)
-      ? (f["180_1"] || 0)
-      : (f["180_2"] || 0);
+  list = smartShuffle(list);
 
-    if(f["Checkout1"] || f["Checkout2"]){
-      if((f.Player1 === name && f["Checkout1"]) ||
-         (f.Player2 === name && f["Checkout2"])){
-        checkoutsMade++;
-      }
-      checkoutAttempts++;
-    }
-  });
+  if(useGroups){
+    await createGroups(list);
+  } else {
+    await createKOBracket(list);
+  }
 
-  const avg = totalDarts > 0 ? (totalPoints / totalDarts * 300).toFixed(1) : 0;
-  const co = checkoutAttempts > 0 ? ((checkoutsMade / checkoutAttempts)*100).toFixed(0) : 0;
+  await activateFirstMatches();
 
-  return { avg, total180, co };
+  alert("✅ Turnier gestartet");
 }
 
 
 // ==========================
-async function updatePlayerMode(id, newMode){
+// ✅ KO BRACKET (NEU!)
+// ==========================
+async function createKOBracket(players){
 
+  for(let i=0;i<players.length;i+=2){
+
+    if(players[i+1]){
+      await createMatch(players[i], players[i+1], null, "", "quarter", "waiting");
+    }
+  }
+}
+
+
+// ==========================
+// ✅ GRUPPEN (simple)
+// ==========================
+async function createGroups(players){
+
+  let g = 1;
+  for(let i=0;i<players.length;i+=2){
+
+    if(players[i+1]){
+      await createMatch(players[i], players[i+1], null, "A", "group", "waiting");
+    }
+  }
+}
+
+
+// ==========================
+// ✅ MATCH AKTIVIEREN
+// ==========================
+async function activateFirstMatches(){
+
+  const matches = await getList("Matches");
   const token = await getToken();
+  const boardCount = parseInt(localStorage.getItem("boardCount")) || 2;
 
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Players/items/${id}/fields`,
-    {
-      method:"PATCH",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({ Mode: newMode })
-    }
-  );
+  const waiting = matches.filter(m => m.fields.Status === "waiting");
 
-  await loadPlayers();
+  for(let i=0;i<Math.min(waiting.length, boardCount); i++){
+
+    await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${waiting[i].id}/fields`,
+      {
+        method:"PATCH",
+        headers:{
+          Authorization:`Bearer ${token}`,
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          Status:"active",
+          BoardId: String(i+1)
+        })
+      }
+    );
+  }
 }
 
 
 // ==========================
-// ✅ TURNIER SPIELERAUSWAHL
-// ==========================
-function renderTournamentPlayers(){
-
-  const div = document.getElementById("tournamentPlayers");
-
-  div.innerHTML = "";
-
-  players.forEach(p => {
-
-    const f = p.fields;
-    const name = f.Title;
-    const mode = f.Mode || "training";
-
-    if(mode === "tournament" || mode === "both"){
-      div.innerHTML += `
-        <div>
-          <label>
-            <input type="checkbox" class="tPlayer" value="${name}" checked>
-            ${name}
-          </label>
-        </div>
-      `;
-    }
-  });
-
-  guests.forEach(name => {
-    div.innerHTML += `
-      <div>
-        <label>
-          <input type="checkbox" class="tPlayer" value="${name}" checked>
-          ${name} (Gast)
-        </label>
-      </div>
-    `;
-  });
-}
-
-
-// ==========================
-function addGuest(){
-
-  const name = document.getElementById("guestInput").value.trim();
-  if(!name) return;
-
-  guests.push(name);
-  document.getElementById("guestInput").value="";
-
-  renderTournamentPlayers();
-}
-
-
-// ==========================
-// ✅ TRAINING MATCH (NEU!)
+// ✅ TRAINING MATCH
 // ==========================
 async function createTrainingMatch(){
 
@@ -206,112 +172,77 @@ async function createTrainingMatch(){
 
   const token = await getToken();
 
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
-    {
-      method:"POST",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        fields:{
-          Title: `${p1} vs ${p2}`,
-          Player1: p1,
-          Player2: p2,
-          Score1: 501,
-          Score2: 501,
-          Legs1: 0,
-          Legs2: 0,
-          LegsToWin: 3,
-          Turn: "p1",
-          Status: "active",
-          BoardId: String(board),
-          Mode: "training"   // ✅ entscheidend
-        }
-      })
-    }
-  );
+  await fetch(`https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,{
+    method:"POST",
+    headers:{
+      Authorization:`Bearer ${token}`,
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+      fields:{
+        Title: `${p1} vs ${p2}`,
+        Player1: p1,
+        Player2: p2,
+        Score1: 501,
+        Score2: 501,
+        Legs1: 0,
+        Legs2: 0,
+        LegsToWin: 3,
+        Turn:"p1",
+        Status:"active",
+        BoardId:String(board),
+        Mode:"training"
+      }
+    })
+  });
 
   alert("✅ Trainingsspiel gestartet");
 }
 
 
 // ==========================
-// ✅ TURNIER START
+// ✅ TRAINING RESET
 // ==========================
-async function startTournament(){
+async function endAllTrainingMatches(){
 
-  console.log("Turnier Spieler:", list);
-console.log("Boards:", boardCount);
+  const token = await getToken();
+  const matches = await getList("Matches");
 
-  // ✅ Boards direkt aus Input holen
-  const boardCount = parseInt(document.getElementById("boardCount").value) || 2;
+  const training = matches.filter(m =>
+    m.fields && m.fields.Mode === "training"
+  );
 
-  const useGroups = document.getElementById("useGroups").checked;
+  for(const m of training){
 
-  // ✅ für Input / Overview speichern
-  localStorage.setItem("boardCount", boardCount);
-
-  // ✅ alte Matches löschen
-  await clearMatches();
-
-  // ✅ Spielerliste holen
-  let list = [...document.querySelectorAll(".tPlayer:checked")]
-    .map(el => el.value);
-
-  if(list.length < 2){
-    alert("❌ Zu wenig Spieler");
-    return;
+    await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${m.id}/fields`,
+      {
+        method:"PATCH",
+        headers:{
+          Authorization:`Bearer ${token}`,
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          Status:"finished",
+          BoardId:null
+        })
+      }
+    );
   }
 
-  // ✅ Turnier erstellen
-  if(useGroups){
-    await createGroups(list);
-  } else {
-    await createKOBracket(list);
-  }
-
-  // ✅ direkt erste Matches aktivieren (wichtig!)
-  await activateFirstMatches();
-
-  alert("✅ Turnier gestartet");
+  alert("✅ Trainingsmatches beendet");
 }
 
+
 // ==========================
-async function clearMatches(){
+// ✅ TURNIER BEENDEN
+// ==========================
+async function endTournament(){
 
   const token = await getToken();
   const matches = await getList("Matches");
 
   for(const m of matches){
-    await fetch(
-      `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${m.id}`,
-      {
-        method:"DELETE",
-        headers:{ Authorization:`Bearer ${token}` }
-      }
-    );
-  }
-}
-
-// ==========================
-// ✅ Turnier beenden
-// ==========================
-async function endTournament(){
-
-  const confirmEnd = confirm("Turnier wirklich beenden?");
-  if(!confirmEnd) return;
-
-  const token = await getToken();
-  const matches = await getList("Matches");
-
-  const tournamentMatches = matches.filter(m =>
-    m.fields && m.fields.Mode === "tournament"
-  );
-
-  for(const m of tournamentMatches){
-
     await fetch(
       `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${m.id}/fields`,
       {
@@ -331,10 +262,34 @@ async function endTournament(){
   alert("✅ Turnier beendet");
 }
 
+
 // ==========================
-// ✅ MATCH ERSTELLEN (NEU)
+// ✅ SMART SHUFFLE
 // ==========================
-async function createMatch(p1, p2, board="", group="", round="group", status="waiting"){
+function smartShuffle(list){
+
+  list = [...list].sort(() => Math.random() - 0.5);
+
+  const half = Math.ceil(list.length/2);
+
+  const top = list.slice(0,half);
+  const bottom = list.slice(half);
+
+  let result = [];
+
+  for(let i=0;i<half;i++){
+    if(top[i]) result.push(top[i]);
+    if(bottom[i]) result.push(bottom[i]);
+  }
+
+  return result;
+}
+
+
+// ==========================
+// ✅ MATCH ERSTELLEN
+// ==========================
+async function createMatch(p1, p2, board=null, group="", round="group", status="waiting"){
 
   const token = await getToken();
 
@@ -348,21 +303,21 @@ async function createMatch(p1, p2, board="", group="", round="group", status="wa
       },
       body:JSON.stringify({
         fields:{
-          Title: `${p1} vs ${p2}`,
-          Player1: p1,
-          Player2: p2,
-          Score1: 501,
-          Score2: 501,
-          Legs1: 0,
-          Legs2: 0,
-          LegsToWin: 3,
-          BoardId: null,
-          Turn: "p1",
-          Status: status,
-          Group: group,
-          Winner: "",
-          Round: round,
-          Mode: "tournament"   // ✅ NEU
+          Title:`${p1} vs ${p2}`,
+          Player1:p1,
+          Player2:p2,
+          Score1:501,
+          Score2:501,
+          Legs1:0,
+          Legs2:0,
+          LegsToWin:3,
+          BoardId:board,
+          Turn:"p1",
+          Status:status,
+          Group:group,
+          Winner:"",
+          Round:round,
+          Mode:"tournament"
         }
       })
     }
