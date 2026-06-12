@@ -792,5 +792,6 @@ async function endMatch(){
     // ✅ neu laden
   await reload();
 }
+}
 
 
