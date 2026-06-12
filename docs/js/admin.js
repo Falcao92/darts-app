@@ -394,6 +394,7 @@ async function endTournament(){
       }
     );
   }
+  alert("✅ Turnier beendet");
 }
 
 
