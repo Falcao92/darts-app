@@ -169,16 +169,15 @@ function buildBoardSelect(){
 
 if(boards.length === 0){
 
-  // ✅ NEU: Boards aus config erzeugen
   const count = parseInt(localStorage.getItem("boardCount")) || 2;
 
   for(let i=1; i<=count; i++){
     sel.innerHTML += `<option value="${i}">Board ${i}</option>`;
   }
-
-
-  sel.onchange = loadMatch;
 }
+
+// ✅ IMMER aktiv!
+sel.onchange = loadMatch;
 
 
 // ==========================
@@ -797,6 +796,6 @@ async function endMatch(){
     // ✅ neu laden
   await reload();
 }
-}
+
 
 
