@@ -234,10 +234,12 @@ async function startTournament(){
 
   list = smartShuffle(list);
 
-  if(useGroups){
-    await createGroups(list);
-  }
+if(useGroups){
+  await createGroups(list);
 
+  // ⚠ Nur initiale KO Slots erzeugen (leer)
+  await createKO([]);
+} else {
   await createKO(list);
 
   await activateFirstMatches();
@@ -274,33 +276,104 @@ async function createGroups(players){
 // ==========================
 async function createKO(players){
 
-  // Halbfinale
+  // nur erste 4 Spieler (klassisches Turnier)
+  players = players.slice(0, 4);
+
+  // Halbfinals
   await createMatch(players[0], players[1], null, "", "semi", "waiting");
   await createMatch(players[2], players[3], null, "", "semi", "waiting");
 
-  // Finale (leer – wird später gefüllt)
+  // Finale
   await createMatch("", "", null, "", "final", "waiting");
 
-  // Platz 3
+  // Spiel um Platz 3
   await createMatch("", "", null, "", "third", "waiting");
 }
 
+//////////////
+//KO System
+  ///////////
+  async function progressKO(){
+
+  const matches = await getList("Matches");
+  const token = await getToken();
+
+  const semis = matches.filter(m => m.fields.Round === "semi");
+  const finishedSemis = semis.filter(m => m.fields.Status === "finished");
+
+  if(finishedSemis.length !== 2) return;
+
+  const final = matches.find(m => m.fields.Round === "final");
+  const third = matches.find(m => m.fields.Round === "third");
+
+  if(!final || !third) return;
+
+  const winners = [];
+  const losers = [];
+
+  finishedSemis.forEach(m => {
+    const f = m.fields;
+
+    winners.push(f.Winner);
+
+    const loser = (f.Player1 === f.Winner)
+      ? f.Player2
+      : f.Player1;
+
+    losers.push(loser);
+  });
+
+  // ✅ Finale setzen
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${final.id}/fields`,
+    {
+      method:"PATCH",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        Player1: winners[0],
+        Player2: winners[1]
+      })
+    }
+  );
+
+  // ✅ Platz 3 setzen
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${third.id}/fields`,
+    {
+      method:"PATCH",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        Player1: losers[0],
+        Player2: losers[1]
+      })
+    }
+  );
+}
 
 // ==========================
 // ✅ MATCH AKTIVIEREN
 // ==========================
 async function activateFirstMatches(){
 
-  const matches = await getList("Matches");
   const token = await getToken();
+  const matches = await getList("Matches");
+
   const boardCount = parseInt(localStorage.getItem("boardCount")) || 2;
 
-  const waiting = matches.filter(m => m.fields.Status === "waiting");
+  const first = matches
+    .filter(m => m.fields.Status === "waiting")
+    .slice(0, boardCount);
 
-  for(let i=0;i<Math.min(waiting.length, boardCount); i++){
+  for(let i = 0; i < first.length; i++){
 
     await fetch(
-      `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${waiting[i].id}/fields`,
+      `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${first[i].id}/fields`,
       {
         method:"PATCH",
         headers:{
@@ -309,12 +382,13 @@ async function activateFirstMatches(){
         },
         body:JSON.stringify({
           Status:"active",
-          BoardId: String(i+1)
+          BoardId: String(i+1) // ✅ DAS FEHLTE!
         })
       }
     );
   }
 }
+
 
 
 // ==========================
@@ -397,6 +471,25 @@ async function endTournament(){
   alert("✅ Turnier beendet");
 }
 
+// ==========================
+// ✅ Freilos Funktion
+// ==========================
+function fillWithByes(players){
+
+  let size = 1;
+
+  while(size < players.length){
+    size *= 2;
+  }
+
+  // fehlende Plätze auffüllen
+  while(players.length < size){
+    players.push("BYE");
+  }
+
+  return players;
+}
+
 
 // ==========================
 // ✅ SMART SHUFFLE
@@ -418,6 +511,7 @@ function smartShuffle(list){
 
   return result;
 }
+
 
 
 // ==========================
@@ -445,7 +539,7 @@ async function createMatch(p1, p2, board=null, group="", round="group", status="
           Legs1:0,
           Legs2:0,
           LegsToWin:3,
-          BoardId:board,
+          BoardId: board || null,
           Turn:"p1",
           Status:status,
           Group:group,
