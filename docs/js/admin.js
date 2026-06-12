@@ -334,7 +334,7 @@ async function clearMatches(){
       }
     );
   }
-  alert("✅ Spiele beendet);
+  alert("✅ Spiele beendet");
 }
 
 
@@ -366,7 +366,7 @@ async function endAllTrainingMatches(){
       }
     );
   }
-   alert("✅ Alle Trainingsspiele beendet);
+   alert("✅ Alle Trainingsspiele beendet");
 }
 
 
