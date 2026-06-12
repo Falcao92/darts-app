@@ -242,23 +242,18 @@ async function createTrainingMatch(){
 // ==========================
 async function startTournament(){
 
-let boardCount;
+  // ✅ Boards direkt aus Input holen
+  const boardCount = parseInt(document.getElementById("boardCount").value) || 2;
 
-// ✅ Training → flexibel
-if(mode === "training"){
-  boardCount = 10; // oder 5 oder was du willst
-}
-
-// ✅ Turnier → gespeicherte Boards
-else{
-  boardCount = parseInt(localStorage.getItem("boardCount")) || 2;
-}
   const useGroups = document.getElementById("useGroups").checked;
 
+  // ✅ für Input / Overview speichern
   localStorage.setItem("boardCount", boardCount);
 
+  // ✅ alte Matches löschen
   await clearMatches();
 
+  // ✅ Spielerliste holen
   let list = [...document.querySelectorAll(".tPlayer:checked")]
     .map(el => el.value);
 
@@ -267,15 +262,18 @@ else{
     return;
   }
 
+  // ✅ Turnier erstellen
   if(useGroups){
     await createGroups(list);
   } else {
     await createKOBracket(list);
   }
 
+  // ✅ direkt erste Matches aktivieren (wichtig!)
+  await activateFirstMatches();
+
   alert("✅ Turnier gestartet");
 }
-
 
 // ==========================
 async function clearMatches(){
