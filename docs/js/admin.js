@@ -290,6 +290,87 @@ async function createKO(players){
   await createMatch("", "", null, "", "third", "waiting");
 }
 
+
+  //////////////
+//KO Generierung von Gruppen
+  ///////////
+async function generateKOFromGroups(){
+
+  const matches = await getList("Matches");
+
+  // 👉 nur Gruppenspiele
+  const groupMatches = matches.filter(m =>
+    m.fields && m.fields.Round === "group"
+  );
+
+  if(groupMatches.length === 0) return;
+
+  // ✅ prüfen ob alle fertig
+  const allFinished = groupMatches.every(m =>
+    m.fields.Status === "finished"
+  );
+
+  if(!allFinished) return;
+
+  // ==========================
+  // ✅ GRUPPEN AUSWERTEN
+  // ==========================
+  let groups = {};
+
+  groupMatches.forEach(m => {
+
+    const f = m.fields;
+
+    if(!groups[f.Group]){
+      groups[f.Group] = {};
+    }
+
+    // Initialisierung
+    if(!groups[f.Group][f.Player1]){
+      groups[f.Group][f.Player1] = 0;
+    }
+    if(!groups[f.Group][f.Player2]){
+      groups[f.Group][f.Player2] = 0;
+    }
+
+    // Punkte zählen
+    if(f.Winner){
+      groups[f.Group][f.Winner] += 2;
+    }
+  });
+
+  // ==========================
+  // ✅ TOP 2 JE GRUPPE
+  // ==========================
+  let qualified = [];
+
+  Object.values(groups).forEach(group => {
+
+    const sorted = Object.entries(group)
+      .sort((a,b) => b[1] - a[1]);
+
+    if(sorted[0]) qualified.push(sorted[0][0]);
+    if(sorted[1]) qualified.push(sorted[1][0]);
+  });
+
+  console.log("✅ Qualifiziert für KO:", qualified);
+
+  if(qualified.length < 4){
+    console.warn("zu wenig Spieler für KO");
+    return;
+  }
+
+  // ==========================
+  // ✅ KO ERSTELLEN
+  // ==========================
+  await createKO(qualified);
+
+  // direkt starten
+  await activateFirstMatches();
+}
+
+
+  
 //////////////
 //KO System
   ///////////
