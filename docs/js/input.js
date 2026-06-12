@@ -57,37 +57,52 @@ async function refreshMatches(){
 // ==========================
 async function fillBoards(){
 
-  const max = parseInt(localStorage.getItem("boardCount"))||2;
+  const max = parseInt(localStorage.getItem("boardCount")) || 2;
 
-  const active = matches.filter(m=>m.fields?.Status==="active");
-  const waiting = matches.filter(m=>m.fields?.Status==="waiting");
+  const active = matches.filter(m => m.fields?.Status === "active");
+  const waiting = matches.filter(m => m.fields?.Status === "waiting");
 
-  let used = active.map(m=>m.fields.BoardId);
+  let used = active
+    .map(m => m.fields.BoardId)
+    .filter(b => b !== null && b !== undefined && b !== "");
 
-  let free=[];
+  let free = [];
 
-for(let i=0;i<free.length;i++){
-
-  if(!waiting[i]) break;
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${waiting[i].id}/fields`,
-    {
-      method:"PATCH",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        Status:"active",
-        BoardId:free[i]
-      })
+  // ✅ freie Boards berechnen
+  for(let i=1; i<=max; i++){
+    if(!used.includes(String(i))){
+      free.push(String(i));
     }
-  );
-}
+  }
 
-// ✅ GANZ WICHTIG
-await refreshMatches();
+  if(free.length === 0) return;
+
+  const token = await getToken();
+
+  // ✅ waiting Matches auf freie Boards legen
+  for(let i=0; i<free.length; i++){
+
+    if(!waiting[i]) break;
+
+    await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${waiting[i].id}/fields`,
+      {
+        method:"PATCH",
+        headers:{
+          Authorization:`Bearer ${token}`,
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          Status:"active",
+          BoardId: free[i]
+        })
+      }
+    );
+  }
+
+  // ✅ GANZ WICHTIG
+  await refreshMatches();
+}
 
 
 // ==========================
