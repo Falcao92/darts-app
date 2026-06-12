@@ -66,34 +66,29 @@ async function fillBoards(){
 
   let free=[];
 
-  for(let i=1;i<=max;i++){
-    if(!used.includes(String(i))){
-      free.push(String(i));
+for(let i=0;i<free.length;i++){
+
+  if(!waiting[i]) break;
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${waiting[i].id}/fields`,
+    {
+      method:"PATCH",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        Status:"active",
+        BoardId:free[i]
+      })
     }
-  }
-
-  const token = await getToken();
-
-  for(let i=0;i<free.length;i++){
-
-    if(!waiting[i]) break;
-
-    await fetch(
-      `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${waiting[i].id}/fields`,
-      {
-        method:"PATCH",
-        headers:{
-          Authorization:`Bearer ${token}`,
-          "Content-Type":"application/json"
-        },
-        body:JSON.stringify({
-          Status:"active",
-          BoardId:free[i]
-        })
-      }
-    );
-  }
+  );
 }
+
+// ✅ GANZ WICHTIG
+await refreshMatches();
+
 
 // ==========================
 function buildBoardSelect(){
