@@ -182,7 +182,13 @@ function updateUI(){
 
   set("score",`${s1} : ${s2}`);
   set("legs",`Legs ${f.Legs1||0}:${f.Legs2||0}`);
-  set("turn",f.Turn==="p1"?f.Player1:f.Player2);
+  const currentPlayer =
+  f.Turn === "p1"
+    ? (f.Player1 || "-")
+    : (f.Player2 || "-");
+
+set("turn", currentPlayer);
+
 
   const darts = f.DartsThrown||0;
   const scored = (501-s1)+(501-s2);
@@ -625,4 +631,46 @@ async function endMatch(){
   await fillBoards();
   await reload();
 }
+async function handleSemiFinals(){
+
+  await refreshMatches();
+
+  const semis = matches.filter(m => m.fields.Round === "semi");
+  const finished = semis.filter(m => m.fields.Status === "finished");
+
+  // ✅ erst wenn beide fertig
+  if(finished.length !== 2) return;
+
+  // ✅ doppelte Erstellung verhindern
+  const existingFinal = matches.some(m => m.fields.Round === "final");
+  if(existingFinal) return;
+
+  let winners = [];
+  let losers = [];
+
+  finished.forEach(m => {
+
+    const f = m.fields;
+
+    winners.push(f.Winner);
+
+    const loser = (f.Player1 === f.Winner)
+      ? f.Player2
+      : f.Player1;
+
+    losers.push(loser);
+  });
+
+  console.log("Finale Spieler:", winners);
+  console.log("Spiel um Platz 3:", losers);
+
+  // ✅ Finale
+  await create(winners[0], winners[1], "final");
+
+  // ✅ Platz 3
+  await create(losers[0], losers[1], "third");
+
+  await fillBoards();
+}
+
 
