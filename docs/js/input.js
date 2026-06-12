@@ -134,39 +134,38 @@ console.log("Board:", board);
 // ==========================
 function updateUI(){
 
+  if(!currentMatch || !currentMatch.fields) return;
+
   const f = currentMatch.fields;
 
-const p1 = document.getElementById("p1");
-const p2 = document.getElementById("p2");
+  const p1 = document.getElementById("p1");
+  const p2 = document.getElementById("p2");
 
-if(!p1 || !p2){
-  console.warn("Player UI fehlt");
-  return;
-}
+  if(p1 && p2){
+    p1.innerText = f.Player1 || "";
+    p2.innerText = f.Player2 || "";
 
-p1.innerText = f.Player1;
-p2.innerText = f.Player2;
+    p1.className = "";
+    p2.className = "";
 
-// RESET
-p1.className = "";
-p2.className = "";
+    if(f.Turn === "p1"){
+      p1.classList.add("activePlayer");
+      p2.classList.add("inactivePlayer");
+    }else{
+      p2.classList.add("activePlayer");
+      p1.classList.add("inactivePlayer");
+    }
+  }
 
-// ✅ AKTIVER SPIELER
-if(f.Turn === "p1"){
-  p1.classList.add("activePlayer");
-  p2.classList.add("inactivePlayer");
-}else{
-  p2.classList.add("activePlayer");
-  p1.classList.add("inactivePlayer");
-}
+  const s1 = f.Score1 ?? 501;
+  const s2 = f.Score2 ?? 501;
 
-  set("score", `${f.Score1} : ${f.Score2}`);
+  set("score", `${s1} : ${s2}`);
   set("legs", `Legs ${f.Legs1||0}:${f.Legs2||0}`);
-  set("turn", f.Turn==="p1"?f.Player1:f.Player2);
+  set("turn", f.Turn==="p1" ? f.Player1 : f.Player2);
 
-  // ✅ LIVE STATS FIX
   const darts = f.DartsThrown || 0;
-  const scored = (501 - f.Score1) + (501 - f.Score2);
+  const scored = (501 - s1) + (501 - s2);
   const avg = darts > 0 ? ((scored / darts) * 3).toFixed(1) : 0;
 
   set("liveAvg", `Avg: ${avg} | Darts: ${darts}`);
@@ -215,9 +214,13 @@ function addBtn(v){
 // ==========================
 function insert(v){
 
-  if(!d1.value) d1.value=v;
-  else if(!d2.value) d2.value=v;
-  else d3.value=v;
+  const i1 = document.getElementById("d1");
+  const i2 = document.getElementById("d2");
+  const i3 = document.getElementById("d3");
+
+  if(!i1.value) i1.value=v;
+  else if(!i2.value) i2.value=v;
+  else i3.value=v;
 }
 
 
@@ -240,6 +243,40 @@ function isDouble(v){
   return v && v.startsWith("D");
 }
 
+
+////KO Logik
+async function progressKO(){
+
+  await refreshMatches();
+
+  const semis = matches.filter(m => m.fields.Round === "semi");
+  const finished = semis.filter(m => m.fields.Status === "finished");
+
+  if(finished.length !== 2) return;
+
+  const finalExists = matches.some(m => m.fields.Round === "final");
+  if(finalExists) return;
+
+  let winners = [];
+  let losers = [];
+
+  finished.forEach(m => {
+
+    const f = m.fields;
+    winners.push(f.Winner);
+
+    const loser = f.Player1 === f.Winner
+      ? f.Player2
+      : f.Player1;
+
+    losers.push(loser);
+  });
+
+  await create(winners[0], winners[1], "final");
+  await create(losers[0], losers[1], "third");
+
+  await fillBoards();
+}
 
 // ==========================
 async function submit(){
@@ -359,27 +396,18 @@ async function finishMatch(winner,l1,l2){
     }
   );
 
-  // ✅ FRISCH LADEN (1)
   await refreshMatches();
 
   if(mode === "tournament"){
 
-    // ✅ Gruppen → KO
-    await autoProgress();
+    // ✅ NEU
+    await autoProgress();    // Gruppen → KO
+    await progressKO();      // Halbfinal → Finale
 
-    // ✅ FRISCH LADEN (2)
-    await refreshMatches();
-
-    // ✅ Halbfinal → Finale
-    await handleSemiFinals();
-
-    // ✅ FRISCH LADEN (3) ← DAS FEHLTE!
     await refreshMatches();
   }
 
-  // ✅ Boards korrekt belegen
   await fillBoards();
-
   await reload();
 }
 
@@ -543,7 +571,7 @@ async function startKO(){
   await fillBoards();   // ✅ aktiviert beide Spiele
 }
 
-async function create(p1,p2,round,board,token=null){
+async function create(p1,p2,round,board=null,token=null){
 
   if(!token) token = await getToken();
 
@@ -565,10 +593,11 @@ async function create(p1,p2,round,board,token=null){
           Legs1:0,
           Legs2:0,
           LegsToWin:3,
-          BoardId:null,        // ✅ WICHTIG: kein fixes Board
+          BoardId:null,
           Turn:"p1",
-          Status:"waiting",    // ✅ NICHT active!
-          Round:round
+          Status:"waiting",
+          Round:round,
+          Mode:"tournament"   // ✅ WICHTIG
         }
       })
     }
