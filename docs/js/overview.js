@@ -8,18 +8,103 @@ window.addEventListener("DOMContentLoaded", async () => {
 });
 
 
+// ==========================
+// 🔄 MAIN UPDATE
+// ==========================
 async function update(){
 
-  const matches = await getList("Matches");
+  const all = await getList("Matches");
 
-  renderBoards(matches);
-  renderGroups(matches);   // ✅ FIX
-  renderBracket(matches);  // ✅ FIX
+  const tournamentMatches = all.filter(m =>
+    m.fields && m.fields.Mode === "tournament"
+  );
+
+  const trainingMatches = all.filter(m =>
+    m.fields && m.fields.Mode === "training"
+  );
+
+  const hasTournament = tournamentMatches.length > 0;
+
+  if(hasTournament){
+
+    renderBoards(tournamentMatches);
+    renderGroups(tournamentMatches);
+    renderBracket(tournamentMatches);
+
+    // ✅ Training ausblenden
+    setHTML("training", "");
+
+  } else {
+
+    // ✅ Turnier ausblenden
+    setHTML("groups", "");
+    setHTML("bracket", "");
+
+    renderBoards(trainingMatches);
+    renderTraining(trainingMatches);
+  }
+}
+
+
+// ==========================
+// ✅ HELPER
+// ==========================
+function setHTML(id, html){
+  const el = document.getElementById(id);
+  if(el) el.innerHTML = html;
 }
 
 
 // =======================
-// BOARDS
+// 🟦 TRAINING VIEW
+// =======================
+function renderTraining(matches){
+
+  const div = document.getElementById("training");
+  if(!div) return;
+
+  const active = matches.filter(m => m.fields.Status === "active");
+
+  const finished = matches
+    .filter(m => m.fields.Status === "finished")
+    .slice(-5);
+
+  let html = "<h2>🎯 Aktuelle Spiele</h2>";
+
+  if(active.length === 0){
+    html += "<p>Keine aktiven Spiele</p>";
+  }
+
+  active.forEach(m => {
+    const f = m.fields;
+
+    html += `
+      <div class="card">
+        ${f.Player1} vs ${f.Player2}<br>
+        ${f.Score1} : ${f.Score2}
+      </div>
+    `;
+  });
+
+  html += "<h2>📈 Letzte Spiele</h2>";
+
+  finished.forEach(m => {
+    const f = m.fields;
+
+    html += `
+      <div class="card small">
+        ${f.Player1} vs ${f.Player2}<br>
+        Gewinner: ${f.Winner || "-"}
+      </div>
+    `;
+  });
+
+  div.innerHTML = html;
+}
+
+
+// =======================
+// 🟩 BOARDS (bleibt gleich)
 // =======================
 function renderBoards(matches){
 
@@ -27,7 +112,13 @@ function renderBoards(matches){
 
   let html = "";
 
-  const boards = [...new Set(matches.map(m => m.fields.BoardId))];
+  const boards = [...new Set(
+    matches
+      .map(m => m.fields.BoardId)
+      .filter(b => b !== null && b !== "" && b !== undefined)
+  )];
+
+  boards.sort((a,b) => Number(a) - Number(b));
 
   boards.forEach(board => {
 
@@ -53,7 +144,7 @@ function renderBoards(matches){
 
 
 // =======================
-// ✅ GROUPS (FIXED)
+// 🟪 GROUPS
 // =======================
 function renderGroups(matches){
 
@@ -61,9 +152,6 @@ function renderGroups(matches){
 
   let groups = {};
 
-  // ==========================
-  // DATEN SAMMELN
-  // ==========================
   matches.forEach(m => {
 
     const f = m.fields;
@@ -74,7 +162,6 @@ function renderGroups(matches){
       groups[f.Group] = {};
     }
 
-    // Spieler initialisieren
     if(!groups[f.Group][f.Player1]){
       groups[f.Group][f.Player1] = createStats(f.Player1);
     }
@@ -83,7 +170,6 @@ function renderGroups(matches){
       groups[f.Group][f.Player2] = createStats(f.Player2);
     }
 
-    // ✅ nur fertige Spiele zählen
     if(f.Status === "finished"){
 
       const p1 = groups[f.Group][f.Player1];
@@ -92,14 +178,12 @@ function renderGroups(matches){
       p1.played++;
       p2.played++;
 
-      // Legs
       p1.legsFor += f.Legs1 || 0;
       p1.legsAgainst += f.Legs2 || 0;
 
       p2.legsFor += f.Legs2 || 0;
       p2.legsAgainst += f.Legs1 || 0;
 
-      // Punkte
       if(f.Winner){
         groups[f.Group][f.Winner].wins++;
         groups[f.Group][f.Winner].points += 2;
@@ -107,9 +191,6 @@ function renderGroups(matches){
     }
   });
 
-  // ==========================
-  // TABLE RENDER
-  // ==========================
   let html = "";
 
   Object.keys(groups).sort().forEach(group => {
@@ -118,13 +199,10 @@ function renderGroups(matches){
 
     players.forEach(p => {
       p.diff = p.legsFor - p.legsAgainst;
-      p.avg = p.played > 0
-        ? (p.legsFor * 501) / (p.played * 15)
-        : 0;
+      p.avg = p.played > 0 ? (p.legsFor * 501) / (p.played * 15) : 0;
     });
 
-    // ✅ SORTIERUNG
-    players.sort((a,b)=>
+    players.sort((a,b) =>
       b.points - a.points ||
       b.diff - a.diff
     );
@@ -144,7 +222,6 @@ function renderGroups(matches){
     `;
 
     players.forEach(p => {
-
       html += `
         <tr>
           <td>${p.name}</td>
@@ -164,9 +241,7 @@ function renderGroups(matches){
 }
 
 
-// ==========================
-// PLAYER TEMPLATE
-// ==========================
+// =======================
 function createStats(name){
   return {
     name,
@@ -180,7 +255,7 @@ function createStats(name){
 
 
 // =======================
-// ✅ BRACKET (FIXED)
+// 🏆 BRACKET
 // =======================
 function renderBracket(matches){
 
@@ -199,7 +274,6 @@ function renderBracket(matches){
   const order = ["last16","quarter","semi","final"];
 
   let rounds = {};
-
   order.forEach(r => rounds[r] = []);
 
   ko.forEach(m => {
@@ -238,8 +312,6 @@ function renderBracket(matches){
 }
 
 
-// =======================
-// LABELS
 // =======================
 function label(r){
 
