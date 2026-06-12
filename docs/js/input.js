@@ -57,30 +57,30 @@ async function refreshMatches(){
 // ==========================
 async function fillBoards(){
 
-  const max = parseInt(localStorage.getItem("boardCount")) || 2;
+  await refreshMatches(); // ✅ wichtig
 
-  const active = matches.filter(m => m.fields?.Status === "active");
-  const waiting = matches.filter(m => m.fields?.Status === "waiting");
+  const boardCount = parseInt(localStorage.getItem("boardCount")) || 2;
 
-  let used = active
+  const active = matches.filter(m => m.fields.Status === "active");
+  const waiting = matches.filter(m => m.fields.Status === "waiting");
+
+  let usedBoards = active
     .map(m => m.fields.BoardId)
     .filter(b => b !== null && b !== undefined && b !== "");
 
-  let free = [];
+  let freeBoards = [];
 
-  // ✅ freie Boards berechnen
-  for(let i=1; i<=max; i++){
-    if(!used.includes(String(i))){
-      free.push(String(i));
+  for(let i=1; i<=boardCount; i++){
+    if(!usedBoards.includes(String(i))){
+      freeBoards.push(String(i));
     }
   }
 
-  if(free.length === 0) return;
+  if(freeBoards.length === 0) return;
 
   const token = await getToken();
 
-  // ✅ waiting Matches auf freie Boards legen
-  for(let i=0; i<free.length; i++){
+  for(let i=0; i<freeBoards.length; i++){
 
     if(!waiting[i]) break;
 
@@ -94,16 +94,14 @@ async function fillBoards(){
         },
         body:JSON.stringify({
           Status:"active",
-          BoardId: free[i]
+          BoardId: freeBoards[i]
         })
       }
     );
   }
 
-  // ✅ GANZ WICHTIG
-  await refreshMatches();
+  await refreshMatches(); // ✅ ganz wichtig
 }
-
 
 // ==========================
 function buildBoardSelect(){
@@ -113,12 +111,12 @@ function buildBoardSelect(){
 
   sel.innerHTML="";
 
-  const boards = [...new Set(matches.map(m=>m.fields?.BoardId).filter(Boolean))];
+  const boards = [...new Set(
+    matches.map(m=>m.fields?.BoardId).filter(Boolean)
+  )];
 
-  if(boards.length===0){
-    const count = parseInt(localStorage.getItem("boardCount"))||2;
-
-    for(let i=1;i<=count;i++){
+  if(boards.length === 0){
+    for(let i=1;i<=2;i++){
       sel.innerHTML += `<option value="${i}">Board ${i}</option>`;
     }
   }else{
@@ -139,15 +137,17 @@ function loadMatch(){
 
   const board = sel.value;
 
-  currentMatch = matches.find(m=>
-    m.fields?.BoardId==board &&
-    m.fields?.Status==="active"
+  currentMatch = matches.find(m =>
+    m.fields?.BoardId == board &&
+    m.fields?.Status === "active"
   );
 
   if(!currentMatch){
+
     set("score","-");
     set("legs","-");
     set("turn","-");
+
     return;
   }
 
@@ -162,39 +162,33 @@ function updateUI(){
   const p1 = document.getElementById("p1");
   const p2 = document.getElementById("p2");
 
-  if(p1 && p2){
+  p1.innerText = f.Player1 || "-";
+  p2.innerText = f.Player2 || "-";
 
-    p1.innerText = f.Player1||"-";
-    p2.innerText = f.Player2||"-";
+  p1.className="";
+  p2.className="";
 
-    p1.classList.remove("activePlayer");
-    p2.classList.remove("activePlayer");
-
-    if(f.Turn==="p1"){
-      p1.classList.add("activePlayer");
-    }else{
-      p2.classList.add("activePlayer");
-    }
+  if(f.Turn==="p1"){
+    p1.classList.add("activePlayer");
+    p2.classList.add("inactivePlayer");
+  }else{
+    p2.classList.add("activePlayer");
+    p1.classList.add("inactivePlayer");
   }
 
-  const s1 = f.Score1 ?? 501;
-  const s2 = f.Score2 ?? 501;
+  set("score", `${f.Score1} : ${f.Score2}`);
+  set("legs", `Legs ${f.Legs1||0}:${f.Legs2||0}`);
 
-  set("score",`${s1} : ${s2}`);
-  set("legs",`Legs ${f.Legs1||0}:${f.Legs2||0}`);
   const currentPlayer =
-  f.Turn === "p1"
-    ? (f.Player1 || "-")
-    : (f.Player2 || "-");
+    f.Turn==="p1" ? f.Player1 : f.Player2;
 
-set("turn", currentPlayer);
+  set("turn", currentPlayer);
 
+  const darts = f.DartsThrown || 0;
+  const scored = (501 - f.Score1)+(501 - f.Score2);
+  const avg = darts > 0 ? ((scored/darts)*3).toFixed(1) : 0;
 
-  const darts = f.DartsThrown||0;
-  const scored = (501-s1)+(501-s2);
-  const avg = darts>0 ? ((scored/darts)*3).toFixed(1) : 0;
-
-  set("liveAvg",`Avg: ${avg} | Darts: ${darts}`);
+  set("liveAvg", `Avg: ${avg} | Darts: ${darts}`);
 }
 
 // ==========================
@@ -221,21 +215,16 @@ function createButtons(){
   addBtn("BULL");
 }
 
-// ==========================
 function addBtn(v){
-
   const b=document.createElement("button");
   b.innerText=v;
   b.onclick=()=>insert(v);
-
   document.getElementById("buttons").appendChild(b);
 }
 
 // ==========================
 function insert(v){
-
   if(!d1||!d2||!d3) return;
-
   if(!d1.value) d1.value=v;
   else if(!d2.value) d2.value=v;
   else d3.value=v;
@@ -243,7 +232,6 @@ function insert(v){
 
 // ==========================
 function val(v){
-
   if(!v) return 0;
 
   v=v.toUpperCase();
@@ -268,7 +256,8 @@ async function submit(){
 
   const f=currentMatch.fields;
 
-  let darts = (f.DartsThrown||0)+3;
+  let darts = f.DartsThrown || 0;
+  darts += 3;
 
   let s1=f.Score1;
   let s2=f.Score2;
@@ -281,6 +270,7 @@ async function submit(){
   const target = parseInt(f.LegsToWin)||3;
 
   if(turn==="p1"){
+
     let ns=s1-total;
 
     if(ns===0 && isDouble(last)){
@@ -290,12 +280,13 @@ async function submit(){
         return;
       }
       await update(501,501,"p2",l1,l2,darts);
-    }else{
+    } else {
       if(ns>1) s1=ns;
       await update(s1,s2,"p2",l1,l2,darts);
     }
 
   }else{
+
     let ns=s2-total;
 
     if(ns===0 && isDouble(last)){
@@ -305,7 +296,7 @@ async function submit(){
         return;
       }
       await update(501,501,"p1",l1,l2,darts);
-    }else{
+    } else {
       if(ns>1) s2=ns;
       await update(s1,s2,"p1",l1,l2,darts);
     }
@@ -341,10 +332,8 @@ async function update(s1,s2,turn,l1,l2,darts){
 }
 
 // ==========================
-// ✅ FIXED AUTO PROGRESS
+// ✅ GROUP → KO
 async function autoProgress(){
-
-  
 
   const group = matches.filter(m =>
     m.fields && m.fields.Round === "group"
@@ -352,92 +341,21 @@ async function autoProgress(){
 
   if(group.length === 0) return;
 
-  console.log("GROUP STATUS:", group.map(g => g.fields.Status));
-
   const allFinished = group.every(m =>
     m.fields.Status === "finished"
   );
 
-  if(!allFinished){
-    console.log("⏳ Gruppen noch nicht fertig");
-    return;
-  }
+  if(!allFinished) return;
 
-  // ❗ wichtig: nur blockieren wenn echte semis da sind
-  const realSemis = matches.some(m =>
+  const exists = matches.some(m =>
     m.fields.Round === "semi" &&
     m.fields.Player1 &&
     m.fields.Player2
   );
 
-  if(realSemis){
-    console.log("KO bereits korrekt gestartet");
-    return;
-  }
-
-  console.log("🔥 Gruppen fertig → starte KO");
+  if(exists) return;
 
   await startKO();
-}
-
-// ==========================
-async function progressKO(){
-
-  const list = await getList("Matches");
-  const token = await getToken();
-
-  const semis = list.filter(m => m.fields.Round === "semi");
-  const finished = semis.filter(m => m.fields.Status === "finished");
-
-  if(finished.length !== 2) return;
-
-  const final = list.find(m => m.fields.Round === "final");
-  const third = list.find(m => m.fields.Round === "third");
-
-  if(!final || !third) return;
-
-  const winners=[];
-  const losers=[];
-
-  finished.forEach(m=>{
-    const f = m.fields;
-    winners.push(f.Winner);
-    losers.push(f.Player1 === f.Winner ? f.Player2 : f.Player1);
-  });
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${final.id}/fields`,
-    {
-      method:"PATCH",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        Player1:winners[0]||"",
-        Player2:winners[1]||"",
-        Status:"waiting"
-      })
-    }
-  );
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${third.id}/fields`,
-    {
-      method:"PATCH",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        Player1:losers[0]||"",
-        Player2:losers[1]||"",
-        Status:"waiting"
-      })
-    }
-  );
-
-  await fillBoards();
 }
 
 // ==========================
@@ -445,19 +363,16 @@ async function startKO(){
 
   await refreshMatches();
 
-  const exists = matches.some(m => m.fields?.Round === "semi");
-  if(exists) return;
+  let groups={};
 
-  let groups = {};
-
-  matches.filter(m => m.fields?.Round === "group")
+  matches.filter(m=>m.fields.Round==="group")
     .forEach(m=>{
-      const f = m.fields;
+      const f=m.fields;
 
       if(!groups[f.Group]) groups[f.Group]={};
 
-      groups[f.Group][f.Player1] = groups[f.Group][f.Player1]||0;
-      groups[f.Group][f.Player2] = groups[f.Group][f.Player2]||0;
+      groups[f.Group][f.Player1]=groups[f.Group][f.Player1]||0;
+      groups[f.Group][f.Player2]=groups[f.Group][f.Player2]||0;
 
       if(f.Winner) groups[f.Group][f.Winner]+=2;
     });
@@ -465,7 +380,7 @@ async function startKO(){
   let players=[];
 
   Object.values(groups).forEach(g=>{
-    const sorted = Object.entries(g).sort((a,b)=>b[1]-a[1]);
+    const sorted=Object.entries(g).sort((a,b)=>b[1]-a[1]);
     players.push(sorted[0][0]);
     if(sorted[1]) players.push(sorted[1][0]);
   });
@@ -475,6 +390,33 @@ async function startKO(){
   await create(players[0],players[1],"semi");
   await create(players[2],players[3],"semi");
 
+  await fillBoards();
+}
+
+// ==========================
+async function handleSemiFinals(){
+
+  await refreshMatches();
+
+  const semis = matches.filter(m => m.fields.Round === "semi");
+  const finished = semis.filter(m => m.fields.Status === "finished");
+
+  if(finished.length !== 2) return;
+
+  const exists = matches.some(m => m.fields.Round === "final");
+  if(exists) return;
+
+  let winners=[];
+  let losers=[];
+
+  finished.forEach(m=>{
+    const f=m.fields;
+    winners.push(f.Winner);
+    losers.push(f.Player1===f.Winner?f.Player2:f.Player1);
+  });
+
+  await create(winners[0], winners[1], "final");
+  await create(losers[0], losers[1], "third");
 
   await fillBoards();
 }
@@ -502,22 +444,15 @@ async function finishMatch(winner,l1,l2){
     }
   );
 
-  // ✅ exakt dein alter funktionierender Flow
   await refreshMatches();
-
-  if(mode === "tournament"){
-
-    await autoProgress();        // Gruppen → KO
-    await refreshMatches();      // ❗ WICHTIG
-
-    await handleSemiFinals();    // Semi → Final
-    await refreshMatches();      // ❗ WICHTIG
-  }
+  await autoProgress();
+  await refreshMatches();
+  await handleSemiFinals();
+  await refreshMatches();
 
   await fillBoards();
   await reload();
 }
-
 
 // ==========================
 async function reload(){
@@ -536,139 +471,7 @@ async function reload(){
 }
 
 function reset(){
-  d1.value=""; d2.value=""; d3.value="";
+  d1.value="";
+  d2.value="";
+  d3.value="";
 }
-
-// ==========================
-async function resetMatch(){
-
-  if(!currentMatch){
-    alert("Kein Spiel geladen");
-    return;
-  }
-
-  const confirmReset = confirm("Match wirklich zurücksetzen?");
-  if(!confirmReset) return;
-
-  const token = await getToken();
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${currentMatch.id}/fields`,
-    {
-      method:"PATCH",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        Score1:501,
-        Score2:501,
-        Legs1:0,
-        Legs2:0,
-        Turn:"p1"
-      })
-    }
-  );
-
-  await reload();
-}
-
-async function endMatchWithWinner(player){
-
-  if(!currentMatch){
-    alert("Kein Spiel geladen");
-    return;
-  }
-
-  const confirmEnd = confirm("Match beenden und Sieger setzen?");
-  if(!confirmEnd) return;
-
-  const f = currentMatch.fields;
-
-  const winner = player === "p1" ? f.Player1 : f.Player2;
-
-  let l1 = f.Legs1 || 0;
-  let l2 = f.Legs2 || 0;
-
-  if(player === "p1") l1++;
-  else l2++;
-
-  await finishMatch(winner,l1,l2);
-}
-
-
-async function endMatch(){
-
-  if(!currentMatch){
-    alert("Kein Spiel geladen");
-    return;
-  }
-
-  const confirmEnd = confirm("Match wirklich beenden?");
-  if(!confirmEnd) return;
-
-  const token = await getToken();
-
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${currentMatch.id}/fields`,
-    {
-      method:"PATCH",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        Status:"finished",
-        BoardId:null
-      })
-    }
-  );
-
-  await refreshMatches();
-  await progressKO();
-  await fillBoards();
-  await reload();
-}
-async function handleSemiFinals(){
-
-  await refreshMatches();
-
-  const semis = matches.filter(m => m.fields.Round === "semi");
-  const finished = semis.filter(m => m.fields.Status === "finished");
-
-  // ✅ erst wenn beide fertig
-  if(finished.length !== 2) return;
-
-  // ✅ doppelte Erstellung verhindern
-  const existingFinal = matches.some(m => m.fields.Round === "final");
-  if(existingFinal) return;
-
-  let winners = [];
-  let losers = [];
-
-  finished.forEach(m => {
-
-    const f = m.fields;
-
-    winners.push(f.Winner);
-
-    const loser = (f.Player1 === f.Winner)
-      ? f.Player2
-      : f.Player1;
-
-    losers.push(loser);
-  });
-
-  console.log("Finale Spieler:", winners);
-  console.log("Spiel um Platz 3:", losers);
-
-  // ✅ Finale
-  await create(winners[0], winners[1], "final");
-
-  // ✅ Platz 3
-  await create(losers[0], losers[1], "third");
-
-  await fillBoards();
-}
-
-
