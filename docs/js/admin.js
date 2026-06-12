@@ -246,6 +246,7 @@ if(useGroups){
 
   alert("✅ Turnier gestartet (inkl. Finale + Platz 3)");
 }
+  }
 
 
 // ==========================
