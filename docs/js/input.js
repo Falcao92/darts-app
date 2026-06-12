@@ -475,8 +475,6 @@ async function startKO(){
   await create(players[0],players[1],"semi");
   await create(players[2],players[3],"semi");
 
-  await create("","", "final");
-  await create("","", "third");
 
   await fillBoards();
 }
