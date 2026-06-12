@@ -156,8 +156,8 @@ function updateUI(){
 
   if(p1 && p2){
 
-    p1.innerText = f.Player1||"";
-    p2.innerText = f.Player2||"";
+    p1.innerText = f.Player1||"-";
+    p2.innerText = f.Player2||"-";
 
     p1.classList.remove("activePlayer");
     p2.classList.remove("activePlayer");
@@ -393,6 +393,8 @@ async function progressKO(){
     }
   );
 
+console.log("Semis:", semis);
+console.log("Finished Semis:", finished);
   console.log("✅ Finale gesetzt");
 
   await fillBoards();
@@ -487,6 +489,7 @@ async function finishMatch(winner,l1,l2){
   );
 
   await refreshMatches();
+  await autoProgress();
   await progressKO();
   await fillBoards();
   await reload();
