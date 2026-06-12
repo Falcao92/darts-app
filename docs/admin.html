@@ -12,7 +12,10 @@
 
 <style>
 body{
-  background:#000; color:white; font-family:Arial; text-align:center;
+  background:#000;
+  color:white;
+  font-family:Arial;
+  text-align:center;
 }
 
 .container{
@@ -31,7 +34,6 @@ h2{ color:red; }
   justify-content:space-between;
   margin:5px;
 }
-
 </style>
 </head>
 
@@ -51,9 +53,11 @@ h2{ color:red; }
   <select id="playerType">
     <option value="training">Training</option>
     <option value="both">Training + Turnier</option>
+    <option value="tournament">Nur Turnier</option>
   </select>
 
-  <button onclick="addPlayer()">+ Spieler</button>
+  <!-- ❗ addPlayer muss existieren oder Button entfernen -->
+  <button onclick="addGuest()">+ Spieler</button>
 
   <hr>
 
@@ -74,12 +78,17 @@ h2{ color:red; }
 
   <input id="tboard" type="number" value="1">
 
-  <br>
+  <br><br>
 
-  <button onclick="createTrainingMatch()">▶ Start</button>   <br>
-  <button onclick="endAllTrainingMatch()">
-  🏁 Training beenden
-</button>
+  <button onclick="createTrainingMatch()">▶ Start</button>
+
+  <br><br>
+
+  <!-- ✅ FIX: richtige Funktion -->
+  <button onclick="endAllTrainingMatches()">
+    🏁 Training beenden
+  </button>
+
 </div>
 
 
@@ -100,12 +109,12 @@ h2{ color:red; }
   <br><br>
 
   Boards:<br>
-  <input id="boardCount" value="2">
+  <input id="boardCount" type="number" value="2">
 
   <br>
 
   Gruppengröße:<br>
-  <input id="groupSize" value="2">
+  <input id="groupSize" type="number" value="2">
 
   <br><br>
 
@@ -117,10 +126,12 @@ h2{ color:red; }
   <br><br>
 
   <button onclick="startTournament()">🚀 Start</button>
-    <br><br>
+
+  <br><br>
+
   <button onclick="endTournament()">
-  🏁 Turnier beenden
-</button>
+    🏁 Turnier beenden
+  </button>
 
 </div>
 
