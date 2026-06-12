@@ -16,6 +16,38 @@ function getPlayerStatsFromList(){
   return { avg: 0, total180: 0, co: 0 };
 }
 
+// ==========================
+// ✅ Spieler hinzufügen
+// ==========================
+async function addPlayer(){
+
+  const name = document.getElementById("playerInput").value.trim();
+  const type = document.getElementById("playerType").value;
+
+  if(!name) return;
+
+  const token = await getToken();
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Players/items`,
+    {
+      method:"POST",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        fields:{
+          Title: name,
+          Mode: type
+        }
+      })
+    }
+  );
+
+  document.getElementById("playerInput").value="";
+  await loadPlayers();
+}
 
 // ==========================
 // ✅ SPIELER LADEN
