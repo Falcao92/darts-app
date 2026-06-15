@@ -1,8 +1,5 @@
 <!DOCTYPE html>
-<html>
-<head>
-
-<meta charset="UTF-8">
+<meta charset="UTF-8"><html>
 <title>Darts Board</title>
 
 <script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
@@ -12,55 +9,109 @@
 
 <style>
 body{
-  background:#000;
+  background: radial-gradient(circle at top, #111 0%, #000 70%);
   color:white;
-  font-family:Arial;
+  font-family:Arial, sans-serif;
   text-align:center;
+  margin:0;
+}
+
+/* Board Titel */
+#boardLabel{
+  font-size:26px;
+  color:#aaa;
+  margin-top:10px;
 }
 
 /* Spieler */
 .players{
   display:flex;
   justify-content:space-between;
-  padding:20px;
-  font-size:28px;
+  align-items:center;
+  padding:30px;
+  font-size:42px;
+  font-weight:bold;
 }
 
+.player{
+  width:45%;
+  padding:10px;
+  border-radius:12px;
+  transition:all 0.3s;
+}
+
+/* Aktiver Spieler */
 .active{
-  color:yellow;
+  background:#ff0033;
+  color:#fff;
+  transform:scale(1.05);
+  box-shadow:0 0 20px rgba(255,0,50,0.6);
+}
+
+/* Inaktiv */
+.inactive{
+  opacity:0.4;
+}
+
+/* TURN ANZEIGE */
+.turnIndicator{
+  font-size:28px;
+  margin-top:5px;
+  color:#00ffcc;
 }
 
 /* Score */
 .score{
-  font-size:120px;
-  color:red;
+  font-size:160px;
+  font-weight:bold;
+  color:#ff0033;
+  margin-top:30px;
 }
 
 /* Legs */
 .legs{
-  margin-top:10px;
-  font-size:28px;
+  margin-top:15px;
+  font-size:42px;
   color:#00ccff;
 }
 
 /* Checkout */
 .checkout{
-  margin-top:10px;
-  font-size:24px;
-  color:yellow;
+  margin-top:20px;
+  font-size:34px;
+  color:#ffff66;
+  font-weight:bold;
+}
+
+/* Kleine Animation */
+@keyframes pulse{
+  0% {transform:scale(1);}
+  50% {transform:scale(1.05);}
+  100% {transform:scale(1);}
+}
+
+.active{
+  animation:pulse 1s infinite;
 }
 </style>
-
+<head>
+  
 </head>
 
 <body>
 
-<!-- Board -->
-<div id="boardLabel"></div>
+<div id="boardLabel">Board 1</div>
 
 <div class="players">
-  <div id="p1">P1</div>
-  <div id="p2">P2</div>
+  <div>
+    <div id="p1" class="player">Player 1</div>
+    <div id="turn1" class="turnIndicator"></div>
+  </div>
+
+  <div>
+    <div id="p2" class="player">Player 2</div>
+    <div id="turn2" class="turnIndicator"></div>
+  </div>
 </div>
 
 <div class="score" id="score">501 : 501</div>
@@ -71,3 +122,4 @@ body{
 
 </body>
 </html>
+
