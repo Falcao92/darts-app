@@ -3,36 +3,69 @@
 <head>
 
 <meta charset="UTF-8">
-<title>Spieler Stats</title>
+<title>Spieler Statistik</title>
 
+<!-- ✅ WICHTIG: MSAL MUSS ZUERST GELADEN WERDEN -->
+<script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
+
+<!-- ✅ DEINE SCRIPTS -->
 <script src="js/auth.js"></script>
 <script src="js/graph.js"></script>
+<script src="js/stats.js"></script>
 
 <style>
 body{
-  background:#000;
+  background: radial-gradient(circle at top, #111 0%, #000 80%);
   color:white;
-  font-family:Arial;
+  font-family:Arial, sans-serif;
   text-align:center;
+  margin:0;
 }
 
 h1{
   color:#ff0033;
+  margin-top:20px;
+  font-size:36px;
 }
 
+/* Dropdown */
 select{
-  font-size:20px;
+  font-size:22px;
   padding:10px;
   margin:20px;
+  border-radius:8px;
+  border:none;
 }
 
+/* Stats Box */
 .stats{
   margin-top:30px;
-  font-size:26px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:15px;
 }
 
+/* Einzelne Stat */
 .stat{
-  margin:10px;
+  background:#111;
+  padding:15px 30px;
+  border-radius:10px;
+  font-size:26px;
+  width:300px;
+  box-shadow:0 0 10px rgba(255,0,50,0.3);
+}
+
+/* Highlight */
+.highlight{
+  color:#00ffcc;
+  font-weight:bold;
+}
+
+/* Hover Effekt */
+.stat:hover{
+  transform:scale(1.05);
+  transition:0.2s;
 }
 </style>
 
@@ -44,83 +77,9 @@ select{
 
 <select id="playerSelect"></select>
 
-<div class="stats" id="stats"></div>
-
-<script>
-
-async function init(){
-
-  const players = await getList("Players");
-  const matches = await getList("Matches");
-
-  const sel = document.getElementById("playerSelect");
-
-  players.forEach(p=>{
-    sel.innerHTML += `<option value="${p.fields.Title}">${p.fields.Title}</option>`;
-  });
-
-  sel.onchange = () => showStats(matches, sel.value);
-
-  if(players.length){
-    showStats(matches, players[0].fields.Title);
-  }
-}
-
-function calculateStats(matches, player){
-
-  let games=0,wins=0,legsWon=0,legsLost=0,darts=0,scored=0,co=0;
-
-  matches.forEach(m=>{
-
-    const f=m.fields;
-    if(!f || f.Status!=="finished") return;
-
-    if(f.Player1!==player && f.Player2!==player) return;
-
-    games++;
-
-    const isP1 = f.Player1===player;
-
-    const score = isP1?f.Score1:f.Score2;
-    const legs = isP1?f.Legs1:f.Legs2;
-
-    legsWon += legs;
-    legsLost += isP1?f.Legs2:f.Legs1;
-
-    if(f.Winner===player){
-      wins++;
-      co++;
-    }
-
-    darts += f.DartsThrown || 0;
-    scored += (501-score);
-  });
-
-  return {
-    games,
-    wins,
-    losses:games-wins,
-    avg: darts>0?((scored/darts)*3).toFixed(2):0,
-    checkout:(games>0?(co/games*100).toFixed(1):0)
-  };
-}
-
-function showStats(matches, player){
-
-  const s = calculateStats(matches, player);
-
-  document.getElementById("stats").innerHTML = `
-    <div class="stat">🎯 Spiele: ${s.games}</div>
-    <div class="stat">✅ Siege: ${s.wins}</div>
-    <div class="stat">❌ Niederlagen: ${s.losses}</div>
-    <div class="stat">📊 Avg: ${s.avg}</div>
-    <div class="stat">🎯 Checkout %: ${s.checkout}%</div>
-  `;
-}
-
-init();
-
-</script>
+<div class="stats" id="stats">
+  <!-- Stats werden hier angezeigt -->
+</div>
 
 </body>
 </html>
