@@ -411,11 +411,20 @@ async function progressKO(){
 
     const finished = currentMatches.filter(m => m.fields.Status === "finished");
 
+    // ✅ nur weiter wenn ALLE Matches fertig sind
     if(finished.length !== currentMatches.length) continue;
 
     const winners = finished.map(m => m.fields.Winner);
 
     for(let x=0; x<nextMatches.length; x++){
+
+      const p1 = winners[x*2] || "";
+      const p2 = winners[x*2+1] || "";
+
+      // ✅ NICHT überschreiben wenn schon gesetzt
+      if(nextMatches[x].fields.Player1 && nextMatches[x].fields.Player2){
+        continue;
+      }
 
       await fetch(
         `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${nextMatches[x].id}/fields`,
@@ -426,8 +435,8 @@ async function progressKO(){
             "Content-Type":"application/json"
           },
           body:JSON.stringify({
-            Player1: winners[x*2] || "",
-            Player2: winners[x*2+1] || "",
+            Player1: p1,
+            Player2: p2,
             Status:"waiting"
           })
         }
@@ -436,7 +445,7 @@ async function progressKO(){
   }
 
   // ==========================
-  // ✅ SEMI → FINAL + PLATZ 3 (KRITISCHER FIX)
+  // ✅ ROBUSTER SEMI → FINAL FIX
   const semis = list.filter(m => m.fields.Round === "semi");
   const finishedSemis = semis.filter(m => m.fields.Status === "finished");
 
@@ -445,46 +454,27 @@ async function progressKO(){
     const final = list.find(m => m.fields.Round === "final");
     const third = list.find(m => m.fields.Round === "third");
 
-    // ✅ NUR WENN NOCH LEER (wichtig!)
-    if(final && !final.fields.Player1){
+    if(final){
 
-      const winners = [];
-      const losers = [];
+      const winner1 = finishedSemis[0].fields.Winner;
+      const winner2 = finishedSemis[1].fields.Winner;
 
-      finishedSemis.forEach(m => {
+      const finalAlreadyCorrect =
+        final.fields.Player1 === winner1 &&
+        final.fields.Player2 === winner2;
 
-        const f = m.fields;
+      // ✅ NUR setzen wenn wirklich nötig
+      if(!finalAlreadyCorrect){
 
-        winners.push(f.Winner);
+        const losers = finishedSemis.map(m =>
+          m.fields.Player1 === m.fields.Winner
+            ? m.fields.Player2
+            : m.fields.Player1
+        );
 
-        const loser = (f.Player1 === f.Winner)
-          ? f.Player2
-          : f.Player1;
-
-        losers.push(loser);
-      });
-
-      // ✅ Finale setzen
-      await fetch(
-        `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${final.id}/fields`,
-        {
-          method:"PATCH",
-          headers:{
-            Authorization:`Bearer ${token}`,
-            "Content-Type":"application/json"
-          },
-          body:JSON.stringify({
-            Player1: winners[0],
-            Player2: winners[1],
-            Status:"waiting"
-          })
-        }
-      );
-
-      // ✅ Platz 3
-      if(third){
+        // ✅ Finale setzen
         await fetch(
-          `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${third.id}/fields`,
+          `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${final.id}/fields`,
           {
             method:"PATCH",
             headers:{
@@ -492,12 +482,31 @@ async function progressKO(){
               "Content-Type":"application/json"
             },
             body:JSON.stringify({
-              Player1: losers[0],
-              Player2: losers[1],
+              Player1: winner1,
+              Player2: winner2,
               Status:"waiting"
             })
           }
         );
+
+        // ✅ Platz 3 setzen
+        if(third){
+          await fetch(
+            `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${third.id}/fields`,
+            {
+              method:"PATCH",
+              headers:{
+                Authorization:`Bearer ${token}`,
+                "Content-Type":"application/json"
+              },
+              body:JSON.stringify({
+                Player1: losers[0],
+                Player2: losers[1],
+                Status:"waiting"
+              })
+            }
+          );
+        }
       }
     }
   }
