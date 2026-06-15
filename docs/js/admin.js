@@ -253,7 +253,7 @@ async function startTournament(){
 
 async function createFullKO(players){
 
-  let size = players.length;
+  const token = await getToken();
 
   const map = {
     64:"r64",
@@ -264,34 +264,162 @@ async function createFullKO(players){
     2:"final"
   };
 
-  // erste Runde
+  const firstRound = map[players.length];
+
+  // ==========================
+  // ✅ ERSTE RUNDE ERSTELLEN
   for(let i=0;i<players.length;i+=2){
-    await createMatch(
-      players[i],
-      players[i+1],
-      null,
-      "",
-      map[players.length],
-      "waiting"
+
+    const p1 = players[i];
+    const p2 = players[i+1];
+
+    // ✅ FREILOS
+    if(p1 === "BYE" || p2 === "BYE"){
+
+      const winner = p1 === "BYE" ? p2 : p1;
+
+      // Match erstellen
+      const res = await fetch(
+        `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
+        {
+          method:"POST",
+          headers:{
+            Authorization:`Bearer ${token}`,
+            "Content-Type":"application/json"
+          },
+          body:JSON.stringify({
+            fields:{
+              Title:`${p1} vs ${p2}`,
+              Player1:p1 || "",
+              Player2:p2 || "",
+              Score1:501,
+              Score2:501,
+              Legs1:0,
+              Legs2:0,
+              LegsToWin:3,
+              BoardId:null,
+              Turn:"p1",
+              Status:"finished",
+              Group:"",
+              Winner: winner,      // ✅ WICHTIG!
+              Round:firstRound,
+              Mode:"tournament"
+            }
+          })
+        }
+      );
+
+      continue;
+    }
+
+    // ✅ NORMALES MATCH
+    await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
+      {
+        method:"POST",
+        headers:{
+          Authorization:`Bearer ${token}`,
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          fields:{
+            Title:`${p1} vs ${p2}`,
+            Player1:p1 || "",
+            Player2:p2 || "",
+            Score1:501,
+            Score2:501,
+            Legs1:0,
+            Legs2:0,
+            LegsToWin:3,
+            BoardId:null,
+            Turn:"p1",
+            Status:"waiting",
+            Group:"",
+            Winner:"",
+            Round:firstRound,
+            Mode:"tournament"
+          }
+        })
+      }
     );
   }
 
-  // leere spätere Runden
+  // ==========================
+  // ✅ FOLGERUNDEN (leer)
   let next = players.length / 2;
 
   while(next >= 2){
 
+    const roundName = map[next];
+
     for(let i=0;i<next/2;i++){
-      await createMatch("", "", null, "", map[next], "waiting");
+
+      await fetch(
+        `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
+        {
+          method:"POST",
+          headers:{
+            Authorization:`Bearer ${token}`,
+            "Content-Type":"application/json"
+          },
+          body:JSON.stringify({
+            fields:{
+              Title:`TBD vs TBD`,
+              Player1:"",
+              Player2:"",
+              Score1:501,
+              Score2:501,
+              Legs1:0,
+              Legs2:0,
+              LegsToWin:3,
+              BoardId:null,
+              Turn:"p1",
+              Status:"waiting",
+              Group:"",
+              Winner:"",
+              Round:roundName,
+              Mode:"tournament"
+            }
+          })
+        }
+      );
     }
 
     next /= 2;
   }
 
-  // Platz 3
-  await createMatch("", "", null, "", "third", "waiting");
+  // ==========================
+  // ✅ SPIEL UM PLATZ 3
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
+    {
+      method:"POST",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        fields:{
+          Title:`TBD vs TBD`,
+          Player1:"",
+          Player2:"",
+          Score1:501,
+          Score2:501,
+          Legs1:0,
+          Legs2:0,
+          LegsToWin:3,
+          BoardId:null,
+          Turn:"p1",
+          Status:"waiting",
+          Group:"",
+          Winner:"",
+          Round:"third",
+          Mode:"tournament"
+        }
+      })
+    }
+  );
 }
-
 
 // ==========================
 // ✅ GRUPPENPHASE
