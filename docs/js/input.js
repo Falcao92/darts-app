@@ -32,6 +32,12 @@ async function init(){
   buildBoardSelect();
   createButtons();
   loadMatch();
+
+  // ✅ LIVE AUTO REFRESH (NEU)
+  setInterval(async ()=>{
+    await refreshMatches();
+    loadMatch();
+  },2000);
 }
 
 // ==========================
@@ -57,7 +63,7 @@ async function refreshMatches(){
 // ==========================
 async function fillBoards(){
 
-  await refreshMatches(); // ✅ wichtig
+  await refreshMatches();
 
   const boardCount = parseInt(localStorage.getItem("boardCount")) || 2;
 
@@ -66,7 +72,7 @@ async function fillBoards(){
 
   let usedBoards = active
     .map(m => m.fields.BoardId)
-    .filter(b => b !== null && b !== undefined && b !== "");
+    .filter(b => b);
 
   let freeBoards = [];
 
@@ -75,8 +81,6 @@ async function fillBoards(){
       freeBoards.push(String(i));
     }
   }
-
-  if(freeBoards.length === 0) return;
 
   const token = await getToken();
 
@@ -100,7 +104,7 @@ async function fillBoards(){
     );
   }
 
-  await refreshMatches(); // ✅ ganz wichtig
+  await refreshMatches();
 }
 
 // ==========================
@@ -143,11 +147,9 @@ function loadMatch(){
   );
 
   if(!currentMatch){
-
     set("score","-");
     set("legs","-");
     set("turn","-");
-
     return;
   }
 
@@ -161,6 +163,8 @@ function updateUI(){
 
   const p1 = document.getElementById("p1");
   const p2 = document.getElementById("p2");
+
+  if(!p1 || !p2) return;
 
   p1.innerText = f.Player1 || "-";
   p2.innerText = f.Player2 || "-";
@@ -179,14 +183,11 @@ function updateUI(){
   set("score", `${f.Score1} : ${f.Score2}`);
   set("legs", `Legs ${f.Legs1||0}:${f.Legs2||0}`);
 
-  const currentPlayer =
-    f.Turn==="p1" ? f.Player1 : f.Player2;
-
-  set("turn", currentPlayer);
+  set("turn", f.Turn==="p1"?f.Player1:f.Player2);
 
   const darts = f.DartsThrown || 0;
-  const scored = (501 - f.Score1)+(501 - f.Score2);
-  const avg = darts > 0 ? ((scored/darts)*3).toFixed(1) : 0;
+  const scored = (501-f.Score1)+(501-f.Score2);
+  const avg = darts>0 ? ((scored/darts)*3).toFixed(1) : 0;
 
   set("liveAvg", `Avg: ${avg} | Darts: ${darts}`);
 }
@@ -256,8 +257,7 @@ async function submit(){
 
   const f=currentMatch.fields;
 
-  let darts = f.DartsThrown || 0;
-  darts += 3;
+  let darts = (f.DartsThrown||0)+3;
 
   let s1=f.Score1;
   let s2=f.Score2;
@@ -270,33 +270,22 @@ async function submit(){
   const target = parseInt(f.LegsToWin)||3;
 
   if(turn==="p1"){
-
     let ns=s1-total;
-
     if(ns===0 && isDouble(last)){
       l1++;
-      if(l1>=target){
-        await finishMatch(f.Player1,l1,l2);
-        return;
-      }
+      if(l1>=target) return await finishMatch(f.Player1,l1,l2);
       await update(501,501,"p2",l1,l2,darts);
-    } else {
+    }else{
       if(ns>1) s1=ns;
       await update(s1,s2,"p2",l1,l2,darts);
     }
-
   }else{
-
     let ns=s2-total;
-
     if(ns===0 && isDouble(last)){
       l2++;
-      if(l2>=target){
-        await finishMatch(f.Player2,l1,l2);
-        return;
-      }
+      if(l2>=target) return await finishMatch(f.Player2,l1,l2);
       await update(501,501,"p1",l1,l2,darts);
-    } else {
+    }else{
       if(ns>1) s2=ns;
       await update(s1,s2,"p1",l1,l2,darts);
     }
@@ -332,7 +321,7 @@ async function update(s1,s2,turn,l1,l2,darts){
 }
 
 // ==========================
-// ✅ GROUP → KO
+// ✅ GROUP → KO (FIXED)
 async function autoProgress(){
 
   const groupMatches = matches.filter(m =>
@@ -347,28 +336,34 @@ async function autoProgress(){
 
   if(!allFinished) return;
 
-  console.log("🔥 Gruppen fertig → KO startet");
+  // ✅ WICHTIG: nur starten wenn KEIN KO existiert
+  const koExists = matches.some(m =>
+    m.fields.Round !== "group"
+  );
+
+  if(koExists) return;
+
+  console.log("🔥 Gruppen fertig → starte KO");
 
   let groups = {};
 
-  groupMatches.forEach(m => {
-
+  groupMatches.forEach(m=>{
     const f = m.fields;
 
-    if(!groups[f.Group]) groups[f.Group] = {};
+    if(!groups[f.Group]) groups[f.Group]={};
 
-    groups[f.Group][f.Player1] = groups[f.Group][f.Player1] || 0;
-    groups[f.Group][f.Player2] = groups[f.Group][f.Player2] || 0;
+    groups[f.Group][f.Player1]=groups[f.Group][f.Player1]||0;
+    groups[f.Group][f.Player2]=groups[f.Group][f.Player2]||0;
 
     if(f.Winner){
-      groups[f.Group][f.Winner] += 2;
+      groups[f.Group][f.Winner]+=2;
     }
   });
 
-  let players = [];
+  let players=[];
 
-  Object.values(groups).forEach(g => {
-    const sorted = Object.entries(g).sort((a,b)=>b[1]-a[1]);
+  Object.values(groups).forEach(g=>{
+    const sorted=Object.entries(g).sort((a,b)=>b[1]-a[1]);
 
     if(sorted[0]) players.push(sorted[0][0]);
     if(sorted[1]) players.push(sorted[1][0]);
@@ -379,7 +374,8 @@ async function autoProgress(){
   await createFullKO(players);
 }
 
-//progressKO
+// ==========================
+// ✅ KO PROGRESSION (FIXED)
 async function progressKO(){
 
   const list = await getList("Matches");
@@ -424,72 +420,6 @@ async function progressKO(){
   }
 }
 
-
-
-// ==========================
-async function startKO(){
-
-  await refreshMatches();
-
-
-  let groups={};
-
-  matches.filter(m=>m.fields.Round==="group")
-    .forEach(m=>{
-      const f=m.fields;
-
-      if(!groups[f.Group]) groups[f.Group]={};
-
-      groups[f.Group][f.Player1]=groups[f.Group][f.Player1]||0;
-      groups[f.Group][f.Player2]=groups[f.Group][f.Player2]||0;
-
-      if(f.Winner) groups[f.Group][f.Winner]+=2;
-    });
-
-  let players=[];
-
-  Object.values(groups).forEach(g=>{
-    const sorted=Object.entries(g).sort((a,b)=>b[1]-a[1]);
-    players.push(sorted[0][0]);
-    if(sorted[1]) players.push(sorted[1][0]);
-  });
-
-  if(players.length<4) return;
-
-  await create(players[0],players[1],"semi");
-  await create(players[2],players[3],"semi");
-
-  await fillBoards();
-}
-
-// ==========================
-async function handleSemiFinals(){
-
-  await refreshMatches();
-
-  const semis = matches.filter(m => m.fields.Round === "semi");
-  const finished = semis.filter(m => m.fields.Status === "finished");
-
-  if(finished.length !== 2) return;
-
-  const exists = matches.some(m => m.fields.Round === "final");
-  if(exists) return;
-
-  let winners=[];
-  let losers=[];
-
-  finished.forEach(m=>{
-    const f=m.fields;
-    winners.push(f.Winner);
-    losers.push(f.Player1===f.Winner?f.Player2:f.Player1);
-  });
-
-  await create(winners[0], winners[1], "final");
-  await create(losers[0], losers[1], "third");
-
-  await fillBoards();
-}
-
 // ==========================
 async function finishMatch(winner,l1,l2){
 
@@ -516,8 +446,6 @@ async function finishMatch(winner,l1,l2){
   await refreshMatches();
   await autoProgress();
   await progressKO();
-  await refreshMatches();
-  await handleSemiFinals();
   await refreshMatches();
 
   await fillBoards();
