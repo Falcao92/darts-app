@@ -335,33 +335,102 @@ async function update(s1,s2,turn,l1,l2,darts){
 // ✅ GROUP → KO
 async function autoProgress(){
 
-  const group = matches.filter(m =>
+  const groupMatches = matches.filter(m =>
     m.fields && m.fields.Round === "group"
   );
 
-  if(group.length === 0) return;
+  if(groupMatches.length === 0) return;
 
-  const allFinished = group.every(m =>
+  const allFinished = groupMatches.every(m =>
     m.fields.Status === "finished"
   );
 
   if(!allFinished) return;
 
-  const exists = matches.some(m =>
-    m.fields.Round === "semi" &&
-    m.fields.Player1 &&
-    m.fields.Player2
-  );
+  console.log("🔥 Gruppen fertig → KO startet");
 
-  if(exists) return;
+  let groups = {};
 
-  await startKO();
+  groupMatches.forEach(m => {
+
+    const f = m.fields;
+
+    if(!groups[f.Group]) groups[f.Group] = {};
+
+    groups[f.Group][f.Player1] = groups[f.Group][f.Player1] || 0;
+    groups[f.Group][f.Player2] = groups[f.Group][f.Player2] || 0;
+
+    if(f.Winner){
+      groups[f.Group][f.Winner] += 2;
+    }
+  });
+
+  let players = [];
+
+  Object.values(groups).forEach(g => {
+    const sorted = Object.entries(g).sort((a,b)=>b[1]-a[1]);
+
+    if(sorted[0]) players.push(sorted[0][0]);
+    if(sorted[1]) players.push(sorted[1][0]);
+  });
+
+  players = seedPlayers(fillWithByes(players));
+
+  await createFullKO(players);
 }
+
+//progressKO
+async function progressKO(){
+
+  const list = await getList("Matches");
+  const token = await getToken();
+
+  const order = ["r64","r32","r16","quarter","semi","final"];
+
+  for(let i=0;i<order.length-1;i++){
+
+    const currentRound = order[i];
+    const nextRound = order[i+1];
+
+    const currentMatches = list.filter(m => m.fields.Round === currentRound);
+    const nextMatches = list.filter(m => m.fields.Round === nextRound);
+
+    if(currentMatches.length === 0) continue;
+
+    const finished = currentMatches.filter(m => m.fields.Status === "finished");
+
+    if(finished.length !== currentMatches.length) continue;
+
+    const winners = finished.map(m => m.fields.Winner);
+
+    for(let x=0; x<nextMatches.length; x++){
+
+      await fetch(
+        `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${nextMatches[x].id}/fields`,
+        {
+          method:"PATCH",
+          headers:{
+            Authorization:`Bearer ${token}`,
+            "Content-Type":"application/json"
+          },
+          body:JSON.stringify({
+            Player1: winners[x*2] || "",
+            Player2: winners[x*2+1] || "",
+            Status:"waiting"
+          })
+        }
+      );
+    }
+  }
+}
+
+
 
 // ==========================
 async function startKO(){
 
   await refreshMatches();
+
 
   let groups={};
 
@@ -446,6 +515,7 @@ async function finishMatch(winner,l1,l2){
 
   await refreshMatches();
   await autoProgress();
+  await progressKO();
   await refreshMatches();
   await handleSemiFinals();
   await refreshMatches();
