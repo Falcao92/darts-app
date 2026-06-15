@@ -420,6 +420,75 @@ async function progressKO(){
   }
 }
 
+//Gewinner setzen händisch
+async function endMatchWithWinner(player){
+
+  if(!currentMatch){
+    alert("Kein Spiel geladen");
+    return;
+  }
+
+  const confirmEnd = confirm("Match beenden und Sieger setzen?");
+  if(!confirmEnd) return;
+
+  const f = currentMatch.fields;
+
+  const winner = player === "p1" ? f.Player1 : f.Player2;
+
+  let l1 = f.Legs1 || 0;
+  let l2 = f.Legs2 || 0;
+
+  // ✅ Gewinner bekommt ein Leg
+  if(player === "p1"){
+    l1++;
+  }else{
+    l2++;
+  }
+
+  // ✅ nutzt dein bestehendes System
+  await finishMatch(winner, l1, l2);
+}
+
+
+
+//spiel zurücksetzen händisch
+
+async function resetMatch(){
+
+  if(!currentMatch){
+    alert("Kein Spiel geladen");
+    return;
+  }
+
+  const confirmReset = confirm("Match wirklich zurücksetzen?");
+  if(!confirmReset) return;
+
+  const token = await getToken();
+
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${currentMatch.id}/fields`,
+    {
+      method:"PATCH",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        Score1:501,
+        Score2:501,
+        Legs1:0,
+        Legs2:0,
+        Turn:"p1",
+        DartsThrown:0
+      })
+    }
+  );
+
+  await reload();
+}
+
+
+
 // ==========================
 async function finishMatch(winner,l1,l2){
 
