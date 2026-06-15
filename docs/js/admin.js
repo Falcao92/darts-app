@@ -232,23 +232,30 @@ async function startTournament(){
     return;
   }
 
-  list = seedPlayers(fillWithByes(list));
+list = seedPlayers(list);
 
-  if(useGroups){
+if(useGroups){
 
-    await createGroups(list);
+  // ✅ KEINE BYE in Gruppen!
+  list = seedPlayers(list);
 
-    // 🚫 KEIN KO HIER!!!
-    alert("✅ Gruppenphase gestartet");
+  await createGroups(list);
 
-  } else {
+  alert("✅ Gruppenphase gestartet");
 
-    await createFullKO(list);
+} else {
 
-    await activateFirstMatches();
+  // ✅ BYE NUR IM KO
+  list = seedPlayers(list);
+  list = fillWithByes(list);
 
-    alert("✅ KO Turnier gestartet");
-  }
+  await createFullKO(list);
+
+  await activateFirstMatches();
+
+  alert("✅ KO Turnier gestartet");
+}
+
 }
 
 async function createFullKO(players){
