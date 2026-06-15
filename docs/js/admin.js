@@ -232,23 +232,65 @@ async function startTournament(){
     return;
   }
 
-  list = smartShuffle(list);
+  list = seedPlayers(fillWithByes(list));
 
-if(useGroups){
-  await createGroups(list);
+  if(useGroups){
 
-  // ✅ KEIN KO HIER!!!
-  alert("✅ Gruppenphase gestartet");
-}
+    await createGroups(list);
 
-} else {
-  await createKO(list);
+    // 🚫 KEIN KO HIER!!!
+    alert("✅ Gruppenphase gestartet");
 
-  await activateFirstMatches();
+  } else {
 
-  alert("✅ Turnier gestartet (inkl. Finale + Platz 3)");
-}
+    await createFullKO(list);
+
+    await activateFirstMatches();
+
+    alert("✅ KO Turnier gestartet");
   }
+}
+
+async function createFullKO(players){
+
+  let size = players.length;
+
+  const map = {
+    64:"r64",
+    32:"r32",
+    16:"r16",
+    8:"quarter",
+    4:"semi",
+    2:"final"
+  };
+
+  // erste Runde
+  for(let i=0;i<players.length;i+=2){
+    await createMatch(
+      players[i],
+      players[i+1],
+      null,
+      "",
+      map[players.length],
+      "waiting"
+    );
+  }
+
+  // leere spätere Runden
+  let next = players.length / 2;
+
+  while(next >= 2){
+
+    for(let i=0;i<next/2;i++){
+      await createMatch("", "", null, "", map[next], "waiting");
+    }
+
+    next /= 2;
+  }
+
+  // Platz 3
+  await createMatch("", "", null, "", "third", "waiting");
+}
 
 
 // ==========================
@@ -293,65 +335,6 @@ async function createKO(players){
   await createMatch("", "", null, "", "third", "waiting");
 }
 
-
-
-
-  // ==========================
-  // ✅ GRUPPEN AUSWERTEN
-  // ==========================
-  let groups = {};
-
-  groupMatches.forEach(m => {
-
-    const f = m.fields;
-
-    if(!groups[f.Group]){
-      groups[f.Group] = {};
-    }
-
-    // Initialisierung
-    if(!groups[f.Group][f.Player1]){
-      groups[f.Group][f.Player1] = 0;
-    }
-    if(!groups[f.Group][f.Player2]){
-      groups[f.Group][f.Player2] = 0;
-    }
-
-    // Punkte zählen
-    if(f.Winner){
-      groups[f.Group][f.Winner] += 2;
-    }
-  });
-
-  // ==========================
-  // ✅ TOP 2 JE GRUPPE
-  // ==========================
-  let qualified = [];
-
-  Object.values(groups).forEach(group => {
-
-    const sorted = Object.entries(group)
-      .sort((a,b) => b[1] - a[1]);
-
-    if(sorted[0]) qualified.push(sorted[0][0]);
-    if(sorted[1]) qualified.push(sorted[1][0]);
-  });
-
-  console.log("✅ Qualifiziert für KO:", qualified);
-
-  if(qualified.length < 4){
-    console.warn("zu wenig Spieler für KO");
-    return;
-  }
-
-  // ==========================
-  // ✅ KO ERSTELLEN
-  // ==========================
-  await createKO(qualified);
-
-  // direkt starten
-  await activateFirstMatches();
-}
 
 
   
@@ -577,7 +560,22 @@ function smartShuffle(list){
   return result;
 }
 
+//Seeding Funktion
+function seedPlayers(players){
 
+  players = players.sort(()=>Math.random()-0.5);
+
+  let result = [];
+
+  while(players.length){
+    result.push(players.shift());
+    if(players.length){
+      result.push(players.pop());
+    }
+  }
+
+  return result;
+}
 
 // ==========================
 // ✅ MATCH ERSTELLEN
@@ -616,4 +614,5 @@ async function createMatch(p1, p2, board=null, group="", round="group", status="
     }
   );
 }
+
 
