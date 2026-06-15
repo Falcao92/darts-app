@@ -135,7 +135,16 @@ function buildBoardSelect(){
 
 // ==========================
 function loadMatch(){
+if(currentMatch &&
+   (currentMatch.fields.Player1 === "BYE" || currentMatch.fields.Player2 === "BYE")){
 
+  const winner = currentMatch.fields.Player1 === "BYE"
+    ? currentMatch.fields.Player2
+    : currentMatch.fields.Player1;
+
+  await finishMatch(winner,1,0);
+  return;
+}
   const sel = document.getElementById("boardSelect");
   if(!sel) return;
 
@@ -252,6 +261,7 @@ function isDouble(v){
 
 // ==========================
 async function submit(){
+if(currentMatch.fields.Status === "finished") return;
 
   if(!currentMatch) return;
 
@@ -581,14 +591,25 @@ async function finishMatch(winner,l1,l2){
     }
   );
 
+  // ✅ GANZ WICHTIG: erst Daten frisch laden!
   await refreshMatches();
+  await new Promise(r => setTimeout(r, 300));  // 🔥 API Delay Fix
+
+  // ✅ jetzt erst logisch weiter
   await autoProgress();
-  await progressKO();
+
   await refreshMatches();
+  await new Promise(r => setTimeout(r, 300));
+
+  await progressKO();
+
+  await refreshMatches();
+  await new Promise(r => setTimeout(r, 300));
 
   await fillBoards();
   await reload();
 }
+
 
 
 //seed Players
