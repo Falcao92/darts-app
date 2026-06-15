@@ -521,6 +521,43 @@ async function finishMatch(winner,l1,l2){
   await reload();
 }
 
+
+//seed Players
+
+function seedPlayers(players){
+
+  players = players.sort(()=>Math.random()-0.5);
+
+  let result = [];
+
+  while(players.length){
+    result.push(players.shift());
+    if(players.length){
+      result.push(players.pop());
+    }
+  }
+
+  return result;
+}
+
+
+//FillwithBytes
+
+function fillWithByes(players){
+
+  let size = 1;
+
+  while(size < players.length){
+    size *= 2;
+  }
+
+  while(players.length < size){
+    players.push("BYE");
+  }
+
+  return players;
+}
+
 // ==========================
 async function reload(){
 
