@@ -3,21 +3,19 @@
 <head>
 
 <meta charset="UTF-8">
-<title>Spieler Statistik</title>
+<title>📊 Stats & Leaderboard</title>
 
-<!-- ✅ WICHTIG: MSAL MUSS ZUERST GELADEN WERDEN -->
 <script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
 
-<!-- ✅ DEINE SCRIPTS -->
-<script src="js/auth.js"></script>
-<script src="js/graph.js"></script>
-<script src="js/stats.js"></script>
+js/auth.js>
+js/graph.jsscript>
+js/stats.jsscript>
 
 <style>
 body{
-  background: radial-gradient(circle at top, #111 0%, #000 80%);
+  background: radial-gradient(circle at top, #111, #000);
   color:white;
-  font-family:Arial, sans-serif;
+  font-family:Arial;
   text-align:center;
   margin:0;
 }
@@ -25,47 +23,67 @@ body{
 h1{
   color:#ff0033;
   margin-top:20px;
-  font-size:36px;
 }
 
 /* Dropdown */
 select{
-  font-size:22px;
+  font-size:20px;
   padding:10px;
   margin:20px;
-  border-radius:8px;
-  border:none;
 }
 
 /* Stats Box */
 .stats{
-  margin-top:30px;
   display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:15px;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:20px;
 }
 
-/* Einzelne Stat */
 .stat{
   background:#111;
-  padding:15px 30px;
+  padding:20px;
   border-radius:10px;
-  font-size:26px;
-  width:300px;
-  box-shadow:0 0 10px rgba(255,0,50,0.3);
+  font-size:24px;
+  width:200px;
+  box-shadow:0px 0px 10px rgba(255,0,50,0.3);
 }
 
-/* Highlight */
-.highlight{
-  color:#00ffcc;
-  font-weight:bold;
+/* Leaderboard */
+table{
+  width:90%;
+  margin:40px auto;
+  border-collapse:collapse;
+  font-size:20px;
 }
 
-/* Hover Effekt */
-.stat:hover{
-  transform:scale(1.05);
-  transition:0.2s;
+th, td{
+  padding:12px;
+  border-bottom:1px solid #333;
+}
+
+thead{
+  background:#222;
+}
+
+tr:hover{
+  background:#111;
+}
+
+.rank1{ color:gold; }
+.rank2{ color:silver; }
+.rank3{ color:#cd7f32; }
+
+.sortBtn{
+  margin:10px;
+  padding:10px 20px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.activeSort{
+  background:#ff0033;
 }
 </style>
 
@@ -77,9 +95,27 @@ select{
 
 <select id="playerSelect"></select>
 
-<div class="stats" id="stats">
-  <!-- Stats werden hier angezeigt -->
-</div>
+<div id="playerStats" class="stats"></div>
+
+<h1>🏆 Leaderboard</h1>
+
+<button class="sortBtn activeSort" onclick="setSort('winrate')">Winrate</button>
+<button class="sortBtn" onclick="setSort('avg')">Avg</button>
+
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Name</th>
+      <th>Spiele</th>
+      <th>Siege</th>
+      <th>Average</th>
+      <th>Checkout %</th>
+      <th>Winrate %</th>
+    </tr>
+  </thead>
+  <tbody id="leaderboard"></tbody>
+</table>
 
 </body>
 </html>
