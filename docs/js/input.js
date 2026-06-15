@@ -134,17 +134,8 @@ function buildBoardSelect(){
 }
 
 // ==========================
-function loadMatch(){
-if(currentMatch &&
-   (currentMatch.fields.Player1 === "BYE" || currentMatch.fields.Player2 === "BYE")){
+async function loadMatch(){
 
-  const winner = currentMatch.fields.Player1 === "BYE"
-    ? currentMatch.fields.Player2
-    : currentMatch.fields.Player1;
-
-  await finishMatch(winner,1,0);
-  return;
-}
   const sel = document.getElementById("boardSelect");
   if(!sel) return;
 
@@ -155,6 +146,18 @@ if(currentMatch &&
     m.fields?.Status === "active"
   );
 
+  // ✅ BYE Handling NACHDEM Match gefunden wurde
+  if(currentMatch &&
+     (currentMatch.fields.Player1 === "BYE" || currentMatch.fields.Player2 === "BYE")){
+
+    const winner = currentMatch.fields.Player1 === "BYE"
+      ? currentMatch.fields.Player2
+      : currentMatch.fields.Player1;
+
+    await finishMatch(winner,1,0);
+    return;
+  }
+
   if(!currentMatch){
     set("score","-");
     set("legs","-");
@@ -164,6 +167,7 @@ if(currentMatch &&
 
   updateUI();
 }
+
 
 // ==========================
 function updateUI(){
