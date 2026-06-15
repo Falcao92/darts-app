@@ -254,6 +254,30 @@ function createStats(name){
 }
 
 
+//Wer ist dran Funktion
+function updateTurnUI(f){
+
+  const p1 = document.getElementById("p1");
+  const p2 = document.getElementById("p2");
+  const t1 = document.getElementById("turn1");
+  const t2 = document.getElementById("turn2");
+
+  p1.classList.remove("active","inactive");
+  p2.classList.remove("active","inactive");
+
+  t1.innerHTML="";
+  t2.innerHTML="";
+
+  if(f.Turn === "p1"){
+    p1.classList.add("active");
+    p2.classList.add("inactive");
+    t1.innerHTML = "◀ DRAN";
+  }else{
+    p2.classList.add("active");
+    p1.classList.add("inactive");
+    t2.innerHTML = "DRAN ▶";
+  }
+}
 // =======================
 // 🏆 BRACKET
 // =======================
