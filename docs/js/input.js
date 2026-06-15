@@ -280,12 +280,27 @@ if(currentMatch.fields.Status === "finished") return;
   let turn=f.Turn;
 
   const total = val(d1.value)+val(d2.value)+val(d3.value);
+  // ✅ 180 Tracking
+if(total === 180){
+  currentMatch.fields.total180 = (currentMatch.fields.total180 || 0) + 1;
+}
+
+// ✅ Checkout Versuch
+if((f.Turn === "p1" ? f.Score1 : f.Score2) <= 170){
+  currentMatch.fields.CheckoutAttempts = (currentMatch.fields.CheckoutAttempts || 0) + 1;
+}
   const last = d3.value||d2.value||d1.value;
   const target = parseInt(f.LegsToWin)||3;
 
   if(turn==="p1"){
     let ns=s1-total;
     if(ns===0 && isDouble(last)){
+      // ✅ High Finish speichern
+const finishValue = total;
+currentMatch.fields.HighFinish = Math.max(
+  currentMatch.fields.HighFinish || 0,
+  finishValue
+);
       l1++;
       if(l1>=target) return await finishMatch(f.Player1,l1,l2);
       await update(501,501,"p2",l1,l2,darts);
@@ -296,6 +311,12 @@ if(currentMatch.fields.Status === "finished") return;
   }else{
     let ns=s2-total;
     if(ns===0 && isDouble(last)){
+      // ✅ High Finish speichern
+const finishValue = total;
+currentMatch.fields.HighFinish = Math.max(
+  currentMatch.fields.HighFinish || 0,
+  finishValue
+);
       l2++;
       if(l2>=target) return await finishMatch(f.Player2,l1,l2);
       await update(501,501,"p1",l1,l2,darts);
@@ -571,7 +592,12 @@ async function resetMatch(){
         Legs1:0,
         Legs2:0,
         Turn:"p1",
-        DartsThrown:0
+        DartsThrown:0,
+        
+  total180: currentMatch.fields.total180 || 0,
+  HighFinish: currentMatch.fields.HighFinish || 0,
+  CheckoutAttempts: currentMatch.fields.CheckoutAttempts || 0
+
       })
     }
   );
