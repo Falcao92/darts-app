@@ -383,6 +383,8 @@ async function progressKO(){
 
   const order = ["r64","r32","r16","quarter","semi","final"];
 
+  // ==========================
+  // ✅ STANDARD KO FLOW
   for(let i=0;i<order.length-1;i++){
 
     const currentRound = order[i];
@@ -416,6 +418,73 @@ async function progressKO(){
           })
         }
       );
+    }
+  }
+
+  // ==========================
+  // ✅ SEMI → FINAL + PLATZ 3 (KRITISCHER FIX)
+  const semis = list.filter(m => m.fields.Round === "semi");
+  const finishedSemis = semis.filter(m => m.fields.Status === "finished");
+
+  if(semis.length === 2 && finishedSemis.length === 2){
+
+    const final = list.find(m => m.fields.Round === "final");
+    const third = list.find(m => m.fields.Round === "third");
+
+    // ✅ NUR WENN NOCH LEER (wichtig!)
+    if(final && !final.fields.Player1){
+
+      const winners = [];
+      const losers = [];
+
+      finishedSemis.forEach(m => {
+
+        const f = m.fields;
+
+        winners.push(f.Winner);
+
+        const loser = (f.Player1 === f.Winner)
+          ? f.Player2
+          : f.Player1;
+
+        losers.push(loser);
+      });
+
+      // ✅ Finale setzen
+      await fetch(
+        `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${final.id}/fields`,
+        {
+          method:"PATCH",
+          headers:{
+            Authorization:`Bearer ${token}`,
+            "Content-Type":"application/json"
+          },
+          body:JSON.stringify({
+            Player1: winners[0],
+            Player2: winners[1],
+            Status:"waiting"
+          })
+        }
+      );
+
+      // ✅ Platz 3
+      if(third){
+        await fetch(
+          `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${third.id}/fields`,
+          {
+            method:"PATCH",
+            headers:{
+              Authorization:`Bearer ${token}`,
+              "Content-Type":"application/json"
+            },
+            body:JSON.stringify({
+              Player1: losers[0],
+              Player2: losers[1],
+              Status:"waiting"
+            })
+          }
+        );
+      }
     }
   }
 }
