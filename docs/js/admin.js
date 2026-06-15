@@ -316,93 +316,6 @@ async function createGroups(players){
 }
 
 
-// ==========================
-// ✅ KO KOMPLETT (SEMI + FINAL + 3.PLATZ)
-// ==========================
-async function createKO(players){
-
-  // nur erste 4 Spieler (klassisches Turnier)
-  players = players.slice(0, 4);
-
-  // Halbfinals
-  await createMatch(players[0], players[1], null, "", "semi", "waiting");
-  await createMatch(players[2], players[3], null, "", "semi", "waiting");
-
-  // Finale
-  await createMatch("", "", null, "", "final", "waiting");
-
-  // Spiel um Platz 3
-  await createMatch("", "", null, "", "third", "waiting");
-}
-
-
-
-  
-//////////////
-//KO System
-  ///////////
-  async function progressKO(){
-
-  const matches = await getList("Matches");
-  const token = await getToken();
-
-  const semis = matches.filter(m => m.fields.Round === "semi");
-  const finishedSemis = semis.filter(m => m.fields.Status === "finished");
-
-  if(finishedSemis.length !== 2) return;
-
-  const final = matches.find(m => m.fields.Round === "final");
-  const third = matches.find(m => m.fields.Round === "third");
-
-  if(!final || !third) return;
-
-  const winners = [];
-  const losers = [];
-
-  finishedSemis.forEach(m => {
-    const f = m.fields;
-
-    winners.push(f.Winner);
-
-    const loser = (f.Player1 === f.Winner)
-      ? f.Player2
-      : f.Player1;
-
-    losers.push(loser);
-  });
-
-  // ✅ Finale setzen
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${final.id}/fields`,
-    {
-      method:"PATCH",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        Player1: winners[0],
-        Player2: winners[1]
-      })
-    }
-  );
-
-  // ✅ Platz 3 setzen
-  await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${third.id}/fields`,
-    {
-      method:"PATCH",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        Player1: losers[0],
-        Player2: losers[1]
-      })
-    }
-  );
-}
 
 // ==========================
 // ✅ MATCH AKTIVIEREN
@@ -539,26 +452,7 @@ function fillWithByes(players){
 }
 
 
-// ==========================
-// ✅ SMART SHUFFLE
-// ==========================
-function smartShuffle(list){
 
-  list = [...list].sort(() => Math.random() - 0.5);
-
-  const half = Math.ceil(list.length/2);
-  const top = list.slice(0,half);
-  const bottom = list.slice(half);
-
-  let result = [];
-
-  for(let i=0;i<half;i++){
-    if(top[i]) result.push(top[i]);
-    if(bottom[i]) result.push(bottom[i]);
-  }
-
-  return result;
-}
 
 //Seeding Funktion
 function seedPlayers(players){
