@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+<title>Spieler Stats</title>
+
+<script src="js/auth.js"></script>
+<script src="js/graph.js"></script>
+
+<style>
+body{
+  background:#000;
+  color:white;
+  font-family:Arial;
+  text-align:center;
+}
+
+h1{
+  color:#ff0033;
+}
+
+select{
+  font-size:20px;
+  padding:10px;
+  margin:20px;
+}
+
+.stats{
+  margin-top:30px;
+  font-size:26px;
+}
+
+.stat{
+  margin:10px;
+}
+</style>
+
+</head>
+
+<body>
+
+<h1>📊 Spieler Statistik</h1>
+
+<select id="playerSelect"></select>
+
+<div class="stats" id="stats"></div>
+
+<script>
+
+async function init(){
+
+  const players = await getList("Players");
+  const matches = await getList("Matches");
+
+  const sel = document.getElementById("playerSelect");
+
+  players.forEach(p=>{
+    sel.innerHTML += `<option value="${p.fields.Title}">${p.fields.Title}</option>`;
+  });
+
+  sel.onchange = () => showStats(matches, sel.value);
+
+  if(players.length){
+    showStats(matches, players[0].fields.Title);
+  }
+}
+
+function calculateStats(matches, player){
+
+  let games=0,wins=0,legsWon=0,legsLost=0,darts=0,scored=0,co=0;
+
+  matches.forEach(m=>{
+
+    const f=m.fields;
+    if(!f || f.Status!=="finished") return;
+
+    if(f.Player1!==player && f.Player2!==player) return;
+
+    games++;
+
+    const isP1 = f.Player1===player;
+
+    const score = isP1?f.Score1:f.Score2;
+    const legs = isP1?f.Legs1:f.Legs2;
+
+    legsWon += legs;
+    legsLost += isP1?f.Legs2:f.Legs1;
+
+    if(f.Winner===player){
+      wins++;
+      co++;
+    }
+
+    darts += f.DartsThrown || 0;
+    scored += (501-score);
+  });
+
+  return {
+    games,
+    wins,
+    losses:games-wins,
+    avg: darts>0?((scored/darts)*3).toFixed(2):0,
+    checkout:(games>0?(co/games*100).toFixed(1):0)
+  };
+}
+
+function showStats(matches, player){
+
+  const s = calculateStats(matches, player);
+
+  document.getElementById("stats").innerHTML = `
+    <div class="stat">🎯 Spiele: ${s.games}</div>
+    <div class="stat">✅ Siege: ${s.wins}</div>
+    <div class="stat">❌ Niederlagen: ${s.losses}</div>
+    <div class="stat">📊 Avg: ${s.avg}</div>
+    <div class="stat">🎯 Checkout %: ${s.checkout}%</div>
+  `;
+}
+
+init();
+
+</script>
+
+</body>
+</html>
