@@ -558,6 +558,182 @@ function fillWithByes(players){
   return players;
 }
 
+
+
+//FullKO
+
+async function createFullKO(players){
+
+  const token = await getToken();
+
+  const map = {
+    64:"r64",
+    32:"r32",
+    16:"r16",
+    8:"quarter",
+    4:"semi",
+    2:"final"
+  };
+
+  const firstRound = map[players.length];
+
+  // ==========================
+  // ✅ ERSTE RUNDE
+  for(let i=0;i<players.length;i+=2){
+
+    const p1 = players[i];
+    const p2 = players[i+1];
+
+    // ✅ FREILOS
+    if(p1 === "BYE" || p2 === "BYE"){
+
+      const winner = p1 === "BYE" ? p2 : p1;
+
+      await fetch(
+        `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
+        {
+          method:"POST",
+          headers:{
+            Authorization:`Bearer ${token}`,
+            "Content-Type":"application/json"
+          },
+          body:JSON.stringify({
+            fields:{
+              Title:`${p1} vs ${p2}`,
+              Player1:p1 || "",
+              Player2:p2 || "",
+              Score1:501,
+              Score2:501,
+              Legs1:0,
+              Legs2:0,
+              LegsToWin:3,
+              BoardId:null,
+              Turn:"p1",
+              Status:"finished",
+              Group:"",
+              Winner: winner,
+              Round:firstRound,
+              Mode:"tournament"
+            }
+          })
+        }
+      );
+
+      continue;
+    }
+
+    // ✅ NORMALES MATCH
+    await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
+      {
+        method:"POST",
+        headers:{
+          Authorization:`Bearer ${token}`,
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          fields:{
+            Title:`${p1} vs ${p2}`,
+            Player1:p1 || "",
+            Player2:p2 || "",
+            Score1:501,
+            Score2:501,
+            Legs1:0,
+            Legs2:0,
+            LegsToWin:3,
+            BoardId:null,
+            Turn:"p1",
+            Status:"waiting",
+            Group:"",
+            Winner:"",
+            Round:firstRound,
+            Mode:"tournament"
+          }
+        })
+      }
+    );
+  }
+
+  // ==========================
+  // ✅ FOLGERUNDEN
+  let next = players.length / 2;
+
+  while(next >= 2){
+
+    const roundName = map[next];
+
+    for(let i=0;i<next/2;i++){
+
+      await fetch(
+        `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
+        {
+          method:"POST",
+          headers:{
+            Authorization:`Bearer ${token}`,
+            "Content-Type":"application/json"
+          },
+          body:JSON.stringify({
+            fields:{
+              Title:`TBD vs TBD`,
+              Player1:"",
+              Player2:"",
+              Score1:501,
+              Score2:501,
+              Legs1:0,
+              Legs2:0,
+              LegsToWin:3,
+              BoardId:null,
+              Turn:"p1",
+              Status:"waiting",
+              Group:"",
+              Winner:"",
+              Round:roundName,
+              Mode:"tournament"
+            }
+          })
+        }
+      );
+    }
+
+    next /= 2;
+  }
+
+  // ==========================
+  // ✅ SPIEL UM PLATZ 3
+  await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items`,
+    {
+      method:"POST",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        fields:{
+          Title:`TBD vs TBD`,
+          Player1:"",
+          Player2:"",
+          Score1:501,
+          Score2:501,
+          Legs1:0,
+          Legs2:0,
+          LegsToWin:3,
+          BoardId:null,
+          Turn:"p1",
+          Status:"waiting",
+          Group:"",
+          Winner:"",
+          Round:"third",
+          Mode:"tournament"
+        }
+      })
+    }
+  );
+
+  // ✅ DIREKT STARTEN
+  await fillBoards();
+}
+
 // ==========================
 async function reload(){
 
