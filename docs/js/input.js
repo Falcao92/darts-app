@@ -289,6 +289,9 @@ async function submit(){
   let dartsP1 = f.DartsP1 || 0;
   let dartsP2 = f.DartsP2 || 0;
 
+let throwsP1 = f.ThrowsP1 ? JSON.parse(f.ThrowsP1) : [];
+let throwsP2 = f.ThrowsP2 ? JSON.parse(f.ThrowsP2) : [];
+
   let s1 = f.Score1;
   let s2 = f.Score2;
   let l1 = f.Legs1 || 0;
@@ -296,6 +299,7 @@ async function submit(){
   let turn = f.Turn;
 
   const total = val(d1.value)+val(d2.value)+val(d3.value);
+  const dartsArray = [d1.value, d2.value, d3.value].filter(Boolean);
   const last = d3.value || d2.value || d1.value;
   const target = parseInt(f.LegsToWin) || 3;
 
@@ -458,17 +462,15 @@ async function update(
         Turn: turn,
         Legs1: l1,
         Legs2: l2,
-
         DartsP1: dartsP1 || 0,
         DartsP2: dartsP2 || 0,
         DartsThrown: (dartsP1 || 0) + (dartsP2 || 0),
-
     CheckoutAttemptsP1: coAttP1 || 0,
 CheckoutAttemptsP2: coAttP2 || 0,
 CheckoutsP1: checkoutsP1 || 0,
 CheckoutsP2: checkoutsP2 || 0,
-
-
+        ThrowsP1: JSON.stringify(throwsP1 || []),
+ThrowsP2: JSON.stringify(throwsP2 || []),
         total180: total180 || 0,
         HighFinish: highFinish || 0
       })
