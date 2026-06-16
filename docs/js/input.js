@@ -401,11 +401,17 @@ async function autoProgress(){
 
  const activeTournament = localStorage.getItem("TournamentID");
 
-const groupMatches = matches.filter(m =>
+const activeTournament = localStorage.getItem("TournamentID");
+
+const all = await getList("Matches");
+
+const groupMatches = all.filter(m =>
   m.fields &&
+  m.fields.Mode === "tournament" &&
   m.fields.Round === "group" &&
-  m.fields.TournamentID == activeTournament
+  String(m.fields.TournamentID) === String(activeTournament)
 );
+
 
   if(groupMatches.length === 0) return;
 
