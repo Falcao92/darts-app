@@ -265,64 +265,86 @@ function isDouble(v){
 
 // ==========================
 async function submit(){
-if(currentMatch.fields.Status === "finished") return;
 
   if(!currentMatch) return;
+  if(currentMatch.fields.Status === "finished") return;
 
-  const f=currentMatch.fields;
+  const f = currentMatch.fields;
 
-  let darts = (f.DartsThrown||0)+3;
+  let darts = (f.DartsThrown || 0) + 3;
 
-  let s1=f.Score1;
-  let s2=f.Score2;
-  let l1=f.Legs1||0;
-  let l2=f.Legs2||0;
-  let turn=f.Turn;
+  let s1 = f.Score1;
+  let s2 = f.Score2;
+  let l1 = f.Legs1 || 0;
+  let l2 = f.Legs2 || 0;
+  let turn = f.Turn;
 
   const total = val(d1.value)+val(d2.value)+val(d3.value);
-  // ✅ 180 Tracking
-if(total === 180){
-  currentMatch.fields.total180 = (currentMatch.fields.total180 || 0) + 1;
-}
+  const last = d3.value || d2.value || d1.value;
+  const target = parseInt(f.LegsToWin) || 3;
 
-// ✅ Checkout Versuch
-if((f.Turn === "p1" ? f.Score1 : f.Score2) <= 170){
-  currentMatch.fields.CheckoutAttempts = (currentMatch.fields.CheckoutAttempts || 0) + 1;
-}
-  const last = d3.value||d2.value||d1.value;
-  const target = parseInt(f.LegsToWin)||3;
+  // ✅ WICHTIG: lokale Stats Variablen!
+  let total180 = f.total180 || 0;
+  let highFinish = f.HighFinish || 0;
+  let checkoutAttempts = f.CheckoutAttempts || 0;
 
-  if(turn==="p1"){
-    let ns=s1-total;
-    if(ns===0 && isDouble(last)){
-      // ✅ High Finish speichern
-const finishValue = total;
-currentMatch.fields.HighFinish = Math.max(
-  currentMatch.fields.HighFinish || 0,
-  finishValue
-);
+  // ✅ 180 korrekt zählen
+  if(total === 180){
+    total180++;
+  }
+
+  // ✅ Checkout Attempt (nur sinnvoll berechnet)
+  const currentScore = turn === "p1" ? s1 : s2;
+  if(currentScore <= 170){
+    checkoutAttempts++;
+  }
+
+  if(turn === "p1"){
+
+    let ns = s1 - total;
+
+    if(ns === 0 && isDouble(last)){
+
+      // ✅ High Finish korrekt setzen
+      highFinish = Math.max(highFinish, total);
+
       l1++;
-      if(l1>=target) return await finishMatch(f.Player1,l1,l2);
-      await update(501,501,"p2",l1,l2,darts);
+
+      if(l1 >= target){
+        return await finishMatch(f.Player1, l1, l2);
+      }
+
+      await update(501, 501, "p2", l1, l2, darts, total180, highFinish, checkoutAttempts);
+
     }else{
-      if(ns>1) s1=ns;
-      await update(s1,s2,"p2",l1,l2,darts);
+
+      if(ns > 1) s1 = ns;
+
+      await update(s1, s2, "p2", l1, l2, darts, total180, highFinish, checkoutAttempts);
     }
+
   }else{
-    let ns=s2-total;
-    if(ns===0 && isDouble(last)){
-      // ✅ High Finish speichern
-const finishValue = total;
-currentMatch.fields.HighFinish = Math.max(
-  currentMatch.fields.HighFinish || 0,
-  finishValue
-);
+
+    let ns = s2 - total;
+
+    if(ns === 0 && isDouble(last)){
+
+      // ✅ High Finish
+      highFinish = Math.max(highFinish, total);
+
       l2++;
-      if(l2>=target) return await finishMatch(f.Player2,l1,l2);
-      await update(501,501,"p1",l1,l2,darts);
+
+      if(l2 >= target){
+        return await finishMatch(f.Player2, l1, l2);
+      }
+
+      await update(501, 501, "p1", l1, l2, darts, total180, highFinish, checkoutAttempts);
+
     }else{
-      if(ns>1) s2=ns;
-      await update(s1,s2,"p1",l1,l2,darts);
+
+      if(ns > 1) s2 = ns;
+
+      await update(s1, s2, "p1", l1, l2, darts, total180, highFinish, checkoutAttempts);
     }
   }
 
@@ -330,8 +352,9 @@ currentMatch.fields.HighFinish = Math.max(
   await reload();
 }
 
+
 // ==========================
-async function update(s1,s2,turn,l1,l2,darts){
+async function update(s1,s2,turn,l1,l2,darts,total180,highFinish,checkoutAttempts){
 
   const token=await getToken();
 
@@ -349,7 +372,12 @@ async function update(s1,s2,turn,l1,l2,darts){
         Turn:turn,
         Legs1:l1,
         Legs2:l2,
-        DartsThrown:darts
+        DartsThrown:darts,
+        
+  total180: total180 || 0,
+  HighFinish: highFinish || 0,
+  CheckoutAttempts: checkoutAttempts || 0
+
       })
     }
   );
