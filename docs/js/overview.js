@@ -22,13 +22,12 @@ const tournamentMatches = all.filter(m => {
   if(!m.fields) return false;
   if(m.fields.Mode !== "tournament") return false;
 
-  // ✅ NUR aktive Turnierspiele
-  if(
-    m.fields.Status !== "active" &&
-    m.fields.Status !== "waiting"
-  ){
-    return false;
-  }
+
+// ✅ NUR archivierte Turniere raus
+if(m.fields.Status === "archived"){
+  return false;
+}
+
 
   // ✅ Filter nach ID (optional)
   if(activeTournament){
@@ -50,9 +49,7 @@ const tournamentMatches = all.filter(m => {
 
   // ✅ WICHTIG: fallback wenn Turnier noch nicht geladen ist
 
-const activeTournamentExists = tournamentMatches.some(m =>
-  m.fields.Status !== "finished"
-);
+const hasTournament = tournamentMatches.length > 0;
 
 if(activeTournamentExists){
 
