@@ -14,7 +14,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 async function update(){
 
   const all = await getList("Matches");
-  const activeTournament = localStorage.getItem("tournamentID");
+  const activeTournament = localStorage.getItem("TournamentID");
 
   // ✅ TURNIER Matches (robust!)
 const tournamentMatches = all.filter(m => {
@@ -51,23 +51,25 @@ if(m.fields.Status === "archived"){
 
 const hasTournament = tournamentMatches.length > 0;
 
-if(activeTournamentExists){
+const hasTournament = tournamentMatches.length > 0;
 
+if(hasTournament){
 
-    renderBoards(tournamentMatches);
-    renderGroups(tournamentMatches);
-    renderBracket(tournamentMatches);
+  renderBoards(tournamentMatches);
+  renderGroups(tournamentMatches);
+  renderBracket(tournamentMatches);
 
-    setHTML("training", "");
+  setHTML("training", "");
 
-  } else {
+} else {
 
-    setHTML("groups", "");
-    setHTML("bracket", "");
+  setHTML("groups", "");
+  setHTML("bracket", "");
 
-    renderBoards(trainingMatches);
-    renderTraining(trainingMatches);
-  }
+  renderBoards(trainingMatches);
+  renderTraining(trainingMatches);
+}
+
   console.log(all.map(m => m.fields.TournamentID));
   }
 
