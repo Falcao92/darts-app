@@ -219,12 +219,11 @@ async function startTournament(){
 
   const boardCount = parseInt(document.getElementById("boardCount").value) || 2;
   const useGroups = document.getElementById("useGroups").checked;
+  const currentTournamentId = Date.now();
+localStorage.setItem("tournamentId", currentTournamentId);
+localStorage.setItem("boardCount", boardCount);
 
-  localStorage.setItem("boardCount", boardCount);
-
-  await clearMatches();
-
-  let list = [...document.querySelectorAll(".tPlayer:checked")]
+   let list = [...document.querySelectorAll(".tPlayer:checked")]
     .map(el => el.value);
 
   if(list.length < 4){
@@ -637,6 +636,7 @@ async function createMatch(p1, p2, board=null, group="", round="group", status="
           Group:group,
           Winner:"",
           Round:round,
+          TournamentId: currentTournamentId,
           Mode:"tournament"
         }
       })
