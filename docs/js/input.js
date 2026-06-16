@@ -44,7 +44,7 @@ async function init(){
 async function refreshMatches(){
 
   const all = await getList("Matches");
-  const activeTournament = localStorage.getItem("tournamentID");
+  const activeTournament = localStorage.getItem("TournamentID");
 
   matches = all.filter(m => {
 
@@ -341,7 +341,7 @@ async function submit(){
       l2++;
 
       if(l2 >= target){
-        return await finishMatch(f.Player2, l1, l2);
+        return await finishMatch(f.Player2, l1, l2, total180, highFinish, checkoutAttempts);
       }
 
       await update(501, 501, "p1", l1, l2, darts, total180, highFinish, checkoutAttempts);
@@ -393,7 +393,7 @@ async function update(s1,s2,turn,l1,l2,darts,total180,highFinish,checkoutAttempt
 // ✅ GROUP → KO (FIXED)
 async function autoProgress(){
 
- const activeTournament = localStorage.getItem("tournamentId");
+ const activeTournament = localStorage.getItem("TournamentID");
 
 const groupMatches = matches.filter(m =>
   m.fields &&
@@ -450,7 +450,7 @@ const groupMatches = matches.filter(m =>
 // ==========================
 // ✅ KO PROGRESSION (FIXED)
 async function progressKO(){
-  const activeTournament = localStorage.getItem("tournamentId");
+  const activeTournament = localStorage.getItem("TournamentID");
 
 const list = (await getList("Matches"))
   .filter(m =>
