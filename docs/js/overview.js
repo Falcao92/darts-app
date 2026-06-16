@@ -17,13 +17,19 @@ async function update(){
   const activeTournament = localStorage.getItem("tournamentId");
 
   // ✅ TURNIER Matches (robust!)
-  const tournamentMatches = all.filter(m =>
-    m.fields &&
-    m.fields.Mode === "tournament" &&
-    m.fields.TournamentID &&
-    activeTournament &&
-    m.fields.TournamentID == activeTournament
-  );
+const tournamentMatches = all.filter(m => {
+
+  if(!m.fields) return false;
+  if(m.fields.Mode !== "tournament") return false;
+
+  // ✅ wenn KEIN aktives Turnier → zeige alle Turniere
+  if(!activeTournament){
+    return true;
+  }
+
+  // ✅ string vergleichen (sicher!)
+  return String(m.fields.TournamentID) === String(activeTournament);
+});
 
   // ✅ TRAINING Matches (unabhängig!)
   const trainingMatches = all.filter(m =>
@@ -51,7 +57,8 @@ async function update(){
     renderBoards(trainingMatches);
     renderTraining(trainingMatches);
   }
-}
+  console.log(all.map(m => m.fields.TournamentID));
+  }
 
 // ==========================
 // ✅ HELPER
