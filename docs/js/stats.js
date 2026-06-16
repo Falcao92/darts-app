@@ -83,12 +83,26 @@ function calculateAdvancedStats(player){
     bestFinish = Math.max(bestFinish, f.HighFinish || 0);
 
     // ✅ Checkout (realistisch approximiert)
-    const attempts = f.CheckoutAttempts || 0;
-    coAttempts += attempts / 2;
+const attempts = f.CheckoutAttempts || 0;
 
-    if(f.Winner === player && legs > 0){
-      coHits++;
-    }
+// ✅ einfache Logik:
+// Gewinner → alle Attempts zählen
+// Verlierer → nur Versuche wenn er theoretisch dran war
+
+if(isP1 && f.Player1 === f.Winner){
+  coAttempts += attempts;
+}else if(!isP1 && f.Player2 === f.Winner){
+  coAttempts += attempts;
+}else{
+  // Verlierer → reduzieren
+  coAttempts += attempts * 0.3; // realistischer Anteil
+}
+
+
+if(f.Winner === player){
+  coHits += (isP1 ? f.Legs1 : f.Legs2) || 1;
+}
+
 
   });
 
