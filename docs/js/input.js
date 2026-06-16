@@ -283,7 +283,8 @@ async function submit(){
 
   const f = currentMatch.fields;
 
-  let darts = (f.DartsThrown || 0) + 3;
+  let dartsP1 = f.DartsP1 || 0;
+  let dartsP2 = f.DartsP2 || 0;
 
   let s1 = f.Score1;
   let s2 = f.Score2;
@@ -295,17 +296,16 @@ async function submit(){
   const last = d3.value || d2.value || d1.value;
   const target = parseInt(f.LegsToWin) || 3;
 
-  // ✅ WICHTIG: lokale Stats Variablen!
   let total180 = f.total180 || 0;
   let highFinish = f.HighFinish || 0;
   let checkoutAttempts = f.CheckoutAttempts || 0;
 
-  // ✅ 180 korrekt zählen
+  // ✅ 180 zählen
   if(total === 180){
     total180++;
   }
 
-  // ✅ Checkout Attempt (nur sinnvoll berechnet)
+  // ✅ Checkout Attempt
   const currentScore = turn === "p1" ? s1 : s2;
   if(currentScore <= 170){
     checkoutAttempts++;
@@ -313,50 +313,64 @@ async function submit(){
 
   if(turn === "p1"){
 
+    dartsP1 += 3; // ✅ NUR Spieler 1!
+
     let ns = s1 - total;
 
     if(ns === 0 && isDouble(last)){
 
-      // ✅ High Finish korrekt setzen
       highFinish = Math.max(highFinish, total);
-
       l1++;
 
       if(l1 >= target){
-       return await finishMatch(f.Player1, l1, l2, total180, highFinish, checkoutAttempts);
+        return await finishMatch(
+          f.Player1,
+          l1,
+          l2,
+          total180,
+          highFinish,
+          checkoutAttempts
+        );
       }
 
-      await update(501, 501, "p2", l1, l2, darts, total180, highFinish, checkoutAttempts);
+      await update(501, 501, "p2", l1, l2, dartsP1, dartsP2, total180, highFinish, checkoutAttempts);
 
     }else{
 
       if(ns > 1) s1 = ns;
 
-      await update(s1, s2, "p2", l1, l2, darts, total180, highFinish, checkoutAttempts);
+      await update(s1, s2, "p2", l1, l2, dartsP1, dartsP2, total180, highFinish, checkoutAttempts);
     }
 
   }else{
+
+    dartsP2 += 3; // ✅ NUR Spieler 2!
 
     let ns = s2 - total;
 
     if(ns === 0 && isDouble(last)){
 
-      // ✅ High Finish
       highFinish = Math.max(highFinish, total);
-
       l2++;
 
       if(l2 >= target){
-        return await finishMatch(f.Player2, l1, l2, total180, highFinish, checkoutAttempts);
+        return await finishMatch(
+          f.Player2,
+          l1,
+          l2,
+          total180,
+          highFinish,
+          checkoutAttempts
+        );
       }
 
-      await update(501, 501, "p1", l1, l2, darts, total180, highFinish, checkoutAttempts);
+      await update(501, 501, "p1", l1, l2, dartsP1, dartsP2, total180, highFinish, checkoutAttempts);
 
     }else{
 
       if(ns > 1) s2 = ns;
 
-      await update(s1, s2, "p1", l1, l2, darts, total180, highFinish, checkoutAttempts);
+      await update(s1, s2, "p1", l1, l2, dartsP1, dartsP2, total180, highFinish, checkoutAttempts);
     }
   }
 
@@ -383,8 +397,14 @@ async function update(s1,s2,turn,l1,l2,darts,total180,highFinish,checkoutAttempt
         Score2:s2,
         Turn:turn,
         Legs1:l1,
-        Legs2:l2,
-        DartsThrown:darts,
+       
+        // ✅ NEU: getrennte Darts
+        DartsP1: dartsP1 || 0,
+        DartsP2: dartsP2 || 0,
+
+        // ✅ OPTIONAL: Gesamt weiterführen (für Kompatibilität)
+        DartsThrown: (dartsP1 || 0) + (dartsP2 || 0),
+
         
   total180: total180 || 0,
   HighFinish: highFinish || 0,
@@ -681,6 +701,10 @@ async function finishMatch(winner,l1,l2,total180,highFinish,checkoutAttempts){
   Winner:winner,
   Status:"finished",
   BoardId:null,
+       
+DartsP1: currentMatch.fields.DartsP1 || 0,
+DartsP2: currentMatch.fields.DartsP2 || 0,
+
 
   total180: total180 || 0,
   HighFinish: highFinish || 0,
