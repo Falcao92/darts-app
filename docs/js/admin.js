@@ -56,7 +56,11 @@ async function createTrainingMatch(){
           Turn:"p1",
           Status:"active",
           BoardId: board,
-          Mode:"training"
+          Mode:"training",          
+total180: 0,
+  HighFinish: 0,
+  CheckoutAttempts: 0
+
         }
       })
     }
@@ -311,7 +315,11 @@ async function createFullKO(players){
               Status:"finished",
               Group:"",
               Winner: winner,      // ✅ WICHTIG!
-              Round:firstRound,
+              Round:firstRound,              
+total180: 0,
+HighFinish: 0,
+CheckoutAttempts: 0,
+
               Mode:"tournament"
             }
           })
@@ -346,6 +354,11 @@ async function createFullKO(players){
             Group:"",
             Winner:"",
             Round:firstRound,
+            
+total180: 0,
+HighFinish: 0,
+CheckoutAttempts: 0,
+
             Mode:"tournament"
           }
         })
@@ -387,7 +400,13 @@ async function createFullKO(players){
               Group:"",
               Winner:"",
               Round:roundName,
+              total180: 0,
+HighFinish: 0,
+CheckoutAttempts: 0,
               Mode:"tournament"
+              
+
+
             }
           })
         }
@@ -423,6 +442,9 @@ async function createFullKO(players){
           Group:"",
           Winner:"",
           Round:"third",
+          total180: 0,
+HighFinish: 0,
+CheckoutAttempts: 0,
           Mode:"tournament"
         }
       })
@@ -671,6 +693,11 @@ async function createMatch(p1, p2, board=null, group="", round="group", status="
           Group:group,
           Winner:"",
           Round:round,
+          
+total180: 0,
+  HighFinish: 0,
+  CheckoutAttempts: 0,
+
          TournamentId: currentTournamentId || localStorage.getItem("tournamentId") || "",
           Mode:"tournament"
         }
