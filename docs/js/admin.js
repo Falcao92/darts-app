@@ -1,6 +1,6 @@
 let players = [];
 let guests = [];
-let currentTournamentId = null;
+let currentTournamentID = null;
 
 
 // ==========================
@@ -222,8 +222,8 @@ function addGuest(){
 // ✅ TURNIER START
 // ==========================
 async function startTournament(){
-currentTournamentId = Date.now().toString();
-localStorage.setItem("tournamentId", currentTournamentId);
+currentTournamentID = Date.now().toString();
+localStorage.setItem("tournamentID", currentTournamentID);
 
   const boardCount = parseInt(document.getElementById("boardCount").value) || 2;
   const useGroups = document.getElementById("useGroups").checked;
@@ -698,7 +698,7 @@ total180: 0,
   HighFinish: 0,
   CheckoutAttempts: 0,
 
-         TournamentId: currentTournamentId || localStorage.getItem("tournamentId") || "",
+         TournamentID: currentTournamentID || localStorage.getItem("tournamentID") || "",
           Mode:"tournament"
         }
       })
