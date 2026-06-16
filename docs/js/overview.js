@@ -12,35 +12,39 @@ window.addEventListener("DOMContentLoaded", async () => {
 // 🔄 MAIN UPDATE
 // ==========================
 async function update(){
-const all = await getList("Matches");
 
-const activeTournament = localStorage.getItem("tournamentId");
+  const all = await getList("Matches");
+  const activeTournament = localStorage.getItem("tournamentId");
 
-const tournamentMatches = all.filter(m =>
-  m.fields &&
-  m.fields.Mode === "tournament" &&
-  m.fields.TournamentID == activeTournament
-);
+  // ✅ TURNIER Matches (robust!)
+  const tournamentMatches = all.filter(m =>
+    m.fields &&
+    m.fields.Mode === "tournament" &&
+    m.fields.TournamentID &&
+    activeTournament &&
+    m.fields.TournamentID == activeTournament
+  );
 
+  // ✅ TRAINING Matches (unabhängig!)
   const trainingMatches = all.filter(m =>
-  m.fields &&
-  m.fields.Mode === "training"
-);
+    m.fields &&
+    m.fields.Mode === "training"
+  );
 
-  const hasTournament = tournamentMatches.length > 0;
+  console.log("ActiveTournament:", activeTournament);
+  console.log("TournamentMatches:", tournamentMatches.length);
 
-  if(hasTournament){
+  // ✅ WICHTIG: fallback wenn Turnier noch nicht geladen ist
+  if(tournamentMatches.length > 0){
 
     renderBoards(tournamentMatches);
     renderGroups(tournamentMatches);
     renderBracket(tournamentMatches);
 
-    // ✅ Training ausblenden
     setHTML("training", "");
 
   } else {
 
-    // ✅ Turnier ausblenden
     setHTML("groups", "");
     setHTML("bracket", "");
 
@@ -48,7 +52,6 @@ const tournamentMatches = all.filter(m =>
     renderTraining(trainingMatches);
   }
 }
-
 
 // ==========================
 // ✅ HELPER
