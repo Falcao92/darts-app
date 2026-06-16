@@ -22,7 +22,7 @@ const tournamentMatches = all.filter(m => {
   if(!m.fields) return false;
   if(m.fields.Mode !== "tournament") return false;
 
-  // ✅ WICHTIGSTER FIX!
+  // ✅ NUR aktive Turnierspiele
   if(
     m.fields.Status !== "active" &&
     m.fields.Status !== "waiting"
@@ -30,24 +30,14 @@ const tournamentMatches = all.filter(m => {
     return false;
   }
 
-  if(!activeTournament){
-    return true;
+  // ✅ Filter nach ID (optional)
+  if(activeTournament){
+    return String(m.fields.TournamentID) === String(activeTournament);
   }
 
-  return String(m.fields.TournamentID) === String(activeTournament);
+  return true;
 });
 
-
-
-
-  // ✅ wenn KEIN aktives Turnier → zeige alle Turniere
-  if(!activeTournament){
-    return true;
-  }
-
-  // ✅ string vergleichen (sicher!)
-  return String(m.fields.TournamentID) === String(activeTournament);
-});
 
   // ✅ TRAINING Matches (unabhängig!)
   const trainingMatches = all.filter(m =>
