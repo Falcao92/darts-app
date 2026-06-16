@@ -223,7 +223,7 @@ function addGuest(){
 // ==========================
 async function startTournament(){
 currentTournamentID = Date.now().toString();
-localStorage.setItem("tournamentID", currentTournamentID);
+localStorage.setItem("TournamentID", currentTournamentID);
 
   const boardCount = parseInt(document.getElementById("boardCount").value) || 2;
   const useGroups = document.getElementById("useGroups").checked;
@@ -483,7 +483,7 @@ async function activateFirstMatches(){
 
   const token = await getToken();
 
-const activeTournament = localStorage.getItem("tournamentID");
+const activeTournament = localStorage.getItem("TournamentID");
 
 const matches = (await getList("Matches"))
   .filter(m => m.fields.TournamentID == activeTournament);
@@ -575,7 +575,7 @@ async function endAllTrainingMatches(){
 async function endTournament(){
 
   const token = await getToken();
-  const activeTournament = localStorage.getItem("tournamentID");
+  const activeTournament = localStorage.getItem("TournamentID");
 
   if(!activeTournament){
     alert("Kein aktives Turnier");
@@ -715,7 +715,7 @@ total180: 0,
   HighFinish: 0,
   CheckoutAttempts: 0,
 
-         TournamentID: currentTournamentID || localStorage.getItem("tournamentID") || "",
+         TournamentID: currentTournamentID || localStorage.getItem("TournamentID") || "",
           Mode:"tournament"
         }
       })
