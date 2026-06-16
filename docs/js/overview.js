@@ -14,7 +14,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 async function update(){
 
   const all = await getList("Matches");
-  const activeTournament = localStorage.getItem("tournamentId");
+  const activeTournament = localStorage.getItem("tournamentID");
 
   // ✅ TURNIER Matches (robust!)
 const tournamentMatches = all.filter(m => {
