@@ -42,24 +42,30 @@ async function init(){
 
 // ==========================
 async function refreshMatches(){
-const all = await getList("Matches");
-const activeTournament = localStorage.getItem("tournamentId");
 
-matches = all.filter(m => {
+  const all = await getList("Matches");
+  const activeTournament = localStorage.getItem("tournamentID");
 
-  if(!m.fields) return false;
+  matches = all.filter(m => {
 
-  if(mode === "training"){
-    return m.fields.Mode === "training";
-  }
+    if(!m.fields) return false;
 
-  if(mode === "tournament"){
-    return m.fields.Mode === "tournament" &&
-           m.fields.TournamentID == activeTournament;
-  }
+    if(mode === "training"){
+      return m.fields.Mode === "training";
+    }
 
-  return false;
-});
+    if(mode === "tournament"){
+
+      // ✅ wichtig: nur aktuelles Turnier
+      return m.fields.Mode === "tournament" &&
+             m.fields.TournamentID &&
+             activeTournament &&
+             m.fields.TournamentID == activeTournament;
+    }
+
+    return false;
+  });
+}
 // ==========================
 async function fillBoards(){
 
@@ -311,7 +317,7 @@ async function submit(){
       l1++;
 
       if(l1 >= target){
-        return await finishMatch(f.Player1, l1, l2);
+       return await finishMatch(f.Player1, l1, l2, total180, highFinish, checkoutAttempts);
       }
 
       await update(501, 501, "p2", l1, l2, darts, total180, highFinish, checkoutAttempts);
@@ -387,9 +393,13 @@ async function update(s1,s2,turn,l1,l2,darts,total180,highFinish,checkoutAttempt
 // ✅ GROUP → KO (FIXED)
 async function autoProgress(){
 
-  const groupMatches = matches.filter(m =>
-    m.fields && m.fields.Round === "group"
-  );
+ const activeTournament = localStorage.getItem("tournamentId");
+
+const groupMatches = matches.filter(m =>
+  m.fields &&
+  m.fields.Round === "group" &&
+  m.fields.TournamentID == activeTournament
+);
 
   if(groupMatches.length === 0) return;
 
@@ -440,8 +450,15 @@ async function autoProgress(){
 // ==========================
 // ✅ KO PROGRESSION (FIXED)
 async function progressKO(){
+  const activeTournament = localStorage.getItem("tournamentId");
 
-  const list = await getList("Matches");
+const list = (await getList("Matches"))
+  .filter(m =>
+    m.fields &&
+    m.fields.Mode === "tournament" &&
+    m.fields.TournamentID == activeTournament
+  );
+
   const token = await getToken();
 
   const order = ["r64","r32","r16","quarter","semi","final"];
@@ -636,7 +653,7 @@ async function resetMatch(){
 
 
 // ==========================
-async function finishMatch(winner,l1,l2){
+async function finishMatch(winner,l1,l2,total180,highFinish,checkoutAttempts){
 
   const token=await getToken();
 
@@ -648,13 +665,17 @@ async function finishMatch(winner,l1,l2){
         Authorization:`Bearer ${token}`,
         "Content-Type":"application/json"
       },
-      body:JSON.stringify({
-        Legs1:l1,
-        Legs2:l2,
-        Winner:winner,
-        Status:"finished",
-        BoardId:null
-      })
+     body:JSON.stringify({
+  Legs1:l1,
+  Legs2:l2,
+  Winner:winner,
+  Status:"finished",
+  BoardId:null,
+
+  total180: total180 || 0,
+  HighFinish: highFinish || 0,
+  CheckoutAttempts: checkoutAttempts || 0
+})
     }
   );
 
