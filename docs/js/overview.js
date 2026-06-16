@@ -20,7 +20,11 @@ async function update(){
 const tournamentMatches = all.filter(m => {
 
   if(!m.fields) return false;
-  if(m.fields.Mode !== "tournament") return false;
+ if(m.fields.Mode !== "tournament") return false;
+
+// ✅ NEU: archivierte Turniere ignorieren
+if(m.fields.Status === "archived") return false;
+
 
   // ✅ wenn KEIN aktives Turnier → zeige alle Turniere
   if(!activeTournament){
@@ -41,7 +45,13 @@ const tournamentMatches = all.filter(m => {
   console.log("TournamentMatches:", tournamentMatches.length);
 
   // ✅ WICHTIG: fallback wenn Turnier noch nicht geladen ist
-  if(tournamentMatches.length > 0){
+
+const activeTournamentExists = tournamentMatches.some(m =>
+  m.fields.Status !== "finished"
+);
+
+if(activeTournamentExists){
+
 
     renderBoards(tournamentMatches);
     renderGroups(tournamentMatches);
