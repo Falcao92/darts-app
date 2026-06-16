@@ -42,31 +42,24 @@ async function init(){
 
 // ==========================
 async function refreshMatches(){
-
+const all = await getList("Matches");
 const activeTournament = localStorage.getItem("tournamentId");
 
-const all = (await getList("Matches"))
-  .filter(m =>
-    !m.fields.TournamentID ||
-    m.fields.TournamentID == activeTournament
-  );
+matches = all.filter(m => {
 
+  if(!m.fields) return false;
 
-  matches = all.filter(m=>{
-    if(!m.fields) return false;
+  if(mode === "training"){
+    return m.fields.Mode === "training";
+  }
 
-    if(mode==="training"){
-      return m.fields.Mode==="training";
-    }
+  if(mode === "tournament"){
+    return m.fields.Mode === "tournament" &&
+           m.fields.TournamentID == activeTournament;
+  }
 
-    if(mode==="tournament"){
-      return m.fields.Mode==="tournament" || m.fields.Round;
-    }
-
-    return false;
-  });
-}
-
+  return false;
+});
 // ==========================
 async function fillBoards(){
 
