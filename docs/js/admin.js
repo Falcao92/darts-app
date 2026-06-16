@@ -603,7 +603,7 @@ async function endTournament(){
   }
 
   // ✅ GANZ WICHTIG!!!
-  localStorage.removeItem("tournamentID");
+  localStorage.removeItem("TournamentID");
 
   alert("✅ Turnier beendet");
 }
