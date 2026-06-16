@@ -43,7 +43,14 @@ async function init(){
 // ==========================
 async function refreshMatches(){
 
-  const all = await getList("Matches");
+const activeTournament = localStorage.getItem("tournamentId");
+
+const all = (await getList("Matches"))
+  .filter(m =>
+    !m.fields.TournamentID ||
+    m.fields.TournamentID == activeTournament
+  );
+
 
   matches = all.filter(m=>{
     if(!m.fields) return false;
