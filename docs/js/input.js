@@ -54,17 +54,19 @@ async function refreshMatches(){
       return m.fields.Mode === "training";
     }
 
-    if(mode === "tournament"){
+  if(mode === "tournament"){
 
-      // ✅ wichtig: nur aktuelles Turnier
-      return m.fields.Mode === "tournament" &&
-             m.fields.TournamentID &&
-             activeTournament &&
-             m.fields.TournamentID == activeTournament;
-    }
+  if(m.fields.Mode !== "tournament") return false;
 
-    return false;
-  });
+  if(m.fields.Status === "archived") return false;
+
+  if(activeTournament){
+    return String(m.fields.TournamentID) === String(activeTournament);
+  }
+
+  return true;
+}
+    );
 }
 // ==========================
 async function fillBoards(){
