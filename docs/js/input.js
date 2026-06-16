@@ -298,7 +298,10 @@ async function submit(){
 
   let total180 = f.total180 || 0;
   let highFinish = f.HighFinish || 0;
-  let checkoutAttempts = f.CheckoutAttempts || 0;
+  
+let coAttP1 = f.CheckoutAttemptsP1 || 0;
+let coAttP2 = f.CheckoutAttemptsP2 || 0;
+
 
   // ✅ 180 zählen
   if(total === 180){
@@ -307,10 +310,13 @@ async function submit(){
 
   // ✅ Checkout Attempt
   const currentScore = turn === "p1" ? s1 : s2;
-  if(currentScore <= 170){
-    checkoutAttempts++;
+if(currentScore <= 170){
+  if(turn === "p1"){
+    coAttP1++;
+  }else{
+    coAttP2++;
   }
-
+}
   if(turn === "p1"){
 
     dartsP1 += 3; // ✅ NUR Spieler 1!
@@ -397,14 +403,13 @@ async function update(s1,s2,turn,l1,l2,darts,total180,highFinish,checkoutAttempt
         Score2:s2,
         Turn:turn,
         Legs1:l1,
-       
-        // ✅ NEU: getrennte Darts
         DartsP1: dartsP1 || 0,
         DartsP2: dartsP2 || 0,
-
-        // ✅ OPTIONAL: Gesamt weiterführen (für Kompatibilität)
         DartsThrown: (dartsP1 || 0) + (dartsP2 || 0),
-
+CheckoutsP1: checkoutsP1 || 0,
+CheckoutsP2: checkoutsP2 || 0,
+CheckoutAttemptsP1: coAttP1 || 0,
+CheckoutAttemptsP2: coAttP2 || 0,
         
   total180: total180 || 0,
   HighFinish: highFinish || 0,
@@ -704,8 +709,10 @@ async function finishMatch(winner,l1,l2,total180,highFinish,checkoutAttempts){
        
 DartsP1: currentMatch.fields.DartsP1 || 0,
 DartsP2: currentMatch.fields.DartsP2 || 0,
-
-
+CheckoutsP1: currentMatch.fields.CheckoutsP1 || 0,
+CheckoutsP2: currentMatch.fields.CheckoutsP2 || 0,
+CheckoutAttemptsP1: currentMatch.fields.CheckoutAttemptsP1 || 0,
+CheckoutAttemptsP2: currentMatch.fields.CheckoutAttemptsP2 || 0,
   total180: total180 || 0,
   HighFinish: highFinish || 0,
   CheckoutAttempts: checkoutAttempts || 0
