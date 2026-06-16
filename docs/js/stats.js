@@ -36,7 +36,6 @@ function buildPlayerSelect(){
 }
 
 // ==========================
-// ✅ ADVANCED STATS
 function calculateAdvancedStats(player){
 
   let games = 0, wins = 0;
@@ -58,27 +57,38 @@ function calculateAdvancedStats(player){
     // ✅ Gewinner
     if(f.Winner === player){
       wins++;
-      coHits++;
     }
 
-    // ✅ KORREKT: Punkte aus Legs
+    // ✅ Punkte
     const legs = isP1 ? (f.Legs1 || 0) : (f.Legs2 || 0);
     const points = legs * 501;
 
-    // ✅ KORREKT: Darts anteilig (50/50 Näherung)
+    // ✅ Darts (mit Fallback!)
+    let playerDarts = isP1
+      ? (f.DartsP1 || 0)
+      : (f.DartsP2 || 0);
 
-const playerDarts = isP1
-  ? (f.DartsP1 || 0)
-  : (f.DartsP2 || 0);
-
+    if(playerDarts === 0){
+      const totalDarts = f.DartsThrown || 0;
+      playerDarts = totalDarts / 2;
+    }
 
     darts += playerDarts;
     scored += points;
 
-    // ✅ einfache Stats
+    // ✅ 180
     total180 += f.total180 || 0;
+
+    // ✅ Best Finish
     bestFinish = Math.max(bestFinish, f.HighFinish || 0);
-    coAttempts += f.CheckoutAttempts || 0;
+
+    // ✅ Checkout (realistisch approximiert)
+    const attempts = f.CheckoutAttempts || 0;
+    coAttempts += attempts / 2;
+
+    if(f.Winner === player && legs > 0){
+      coHits++;
+    }
 
   });
 
@@ -86,10 +96,7 @@ const playerDarts = isP1
     games,
     wins,
     losses: games - wins,
-
-    // ✅ echte Avg
     avg: darts > 0 ? ((scored / darts) * 3).toFixed(2) : 0,
-
     winrate: games > 0 ? ((wins / games) * 100).toFixed(1) : 0,
     total180,
     bestFinish,
