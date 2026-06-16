@@ -483,7 +483,7 @@ async function activateFirstMatches(){
 
   const token = await getToken();
 
-const activeTournament = localStorage.getItem("tournamentId");
+const activeTournament = localStorage.getItem("tournamentID");
 
 const matches = (await getList("Matches"))
   .filter(m => m.fields.TournamentID == activeTournament);
@@ -590,12 +590,13 @@ const matches = (await getList("Matches"))
           "Content-Type":"application/json"
         },
         body:JSON.stringify({
-          Status:"finished",
+          Status:"archived",
           BoardId:null
         })
       }
     );
   }
+  localStorage.removeItem("tournamentID");
   alert("✅ Turnier beendet");
 }
 
