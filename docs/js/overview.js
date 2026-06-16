@@ -16,27 +16,22 @@ async function update(){
   const all = await getList("Matches");
   const activeTournament = localStorage.getItem("TournamentID");
 
-  // ✅ TURNIER Matches (robust!)
 const tournamentMatches = all.filter(m => {
 
   if(!m.fields) return false;
   if(m.fields.Mode !== "tournament") return false;
 
+  // ✅ archivierte raus
+  if(m.fields.Status === "archived") return false;
 
-// ✅ NUR archivierte Turniere raus
-if(m.fields.Status === "archived"){
-  return false;
-}
-
-
-  // ✅ Filter nach ID (optional)
-  if(activeTournament){
-    return String(m.fields.TournamentID) === String(activeTournament);
+  // ✅ KEIN aktives Turnier → KEINE anzeigen
+  if(!activeTournament){
+    return false;
   }
 
-  return true;
+  // ✅ nur aktuelles
+  return String(m.fields.TournamentID) === String(activeTournament);
 });
-
 
   // ✅ TRAINING Matches (unabhängig!)
   const trainingMatches = all.filter(m =>
