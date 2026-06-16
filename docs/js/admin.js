@@ -1,5 +1,7 @@
 let players = [];
 let guests = [];
+let currentTournamentId = null;
+
 
 // ==========================
 window.addEventListener("DOMContentLoaded", async () => {
@@ -216,12 +218,13 @@ function addGuest(){
 // ✅ TURNIER START
 // ==========================
 async function startTournament(){
+currentTournamentId = Date.now().toString();
+localStorage.setItem("tournamentId", currentTournamentId);
 
   const boardCount = parseInt(document.getElementById("boardCount").value) || 2;
   const useGroups = document.getElementById("useGroups").checked;
-  const currentTournamentId = Date.now();
-localStorage.setItem("tournamentId", currentTournamentId);
-localStorage.setItem("boardCount", boardCount);
+
+  localStorage.setItem("boardCount", boardCount);
 
    let list = [...document.querySelectorAll(".tPlayer:checked")]
     .map(el => el.value);
@@ -668,7 +671,7 @@ async function createMatch(p1, p2, board=null, group="", round="group", status="
           Group:group,
           Winner:"",
           Round:round,
-          TournamentId: currentTournamentId,
+         TournamentId: currentTournamentId || localStorage.getItem("tournamentId") || "",
           Mode:"tournament"
         }
       })
