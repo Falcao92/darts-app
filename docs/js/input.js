@@ -60,14 +60,19 @@ async function refreshMatches(){
 
   if(m.fields.Status === "archived") return false;
 
-  if(activeTournament){
-    return String(m.fields.TournamentID) === String(activeTournament);
+ 
+      // ✅ filter nach aktuellem Turnier
+      if(activeTournament){
+        return String(m.fields.TournamentID) === String(activeTournament);
+      }
+
+      // ✅ fallback
+      return true;
+    }
+
+    return false; // ✅ GANZ WICHTIG!
   }
 
-  return true;
-}
-    );
-}
 // ==========================
 async function fillBoards(){
 
