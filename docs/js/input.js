@@ -166,7 +166,7 @@ async function loadMatch(){
       ? currentMatch.fields.Player2
       : currentMatch.fields.Player1;
 
-    await finishMatch(winner,1,0);
+  await finishMatch(winner,1,0,0,0,0,0,0,0);
     return;
   }
 
@@ -283,6 +283,9 @@ async function submit(){
 
   const f = currentMatch.fields;
 
+  let checkoutsP1 = f.CheckoutsP1 || 0;
+  let checkoutsP2 = f.CheckoutsP2 || 0;
+
   let dartsP1 = f.DartsP1 || 0;
   let dartsP2 = f.DartsP2 || 0;
 
@@ -299,9 +302,8 @@ async function submit(){
   let total180 = f.total180 || 0;
   let highFinish = f.HighFinish || 0;
   
-let coAttP1 = f.CheckoutAttemptsP1 || 0;
-let coAttP2 = f.CheckoutAttemptsP2 || 0;
-
+  let coAttP1 = f.CheckoutAttemptsP1 || 0;
+  let coAttP2 = f.CheckoutAttemptsP2 || 0;
 
   // ✅ 180 zählen
   if(total === 180){
@@ -310,21 +312,25 @@ let coAttP2 = f.CheckoutAttemptsP2 || 0;
 
   // ✅ Checkout Attempt
   const currentScore = turn === "p1" ? s1 : s2;
-if(currentScore <= 170){
-  if(turn === "p1"){
-    coAttP1++;
-  }else{
-    coAttP2++;
+  if(currentScore <= 170){
+    if(turn === "p1"){
+      coAttP1++;
+    }else{
+      coAttP2++;
+    }
   }
-}
+
+  // ==========================
+  // ✅ PLAYER 1 TURN
   if(turn === "p1"){
 
-    dartsP1 += 3; // ✅ NUR Spieler 1!
+    dartsP1 += 3;
 
     let ns = s1 - total;
 
     if(ns === 0 && isDouble(last)){
 
+      checkoutsP1++;
       highFinish = Math.max(highFinish, total);
       l1++;
 
@@ -335,27 +341,46 @@ if(currentScore <= 170){
           l2,
           total180,
           highFinish,
-          checkoutAttempts
+          coAttP1,
+          coAttP2,
+          checkoutsP1,
+          checkoutsP2
         );
       }
 
-      await update(501, 501, "p2", l1, l2, dartsP1, dartsP2, total180, highFinish, checkoutAttempts);
+      await update(
+        501, 501, "p2", l1, l2,
+        dartsP1, dartsP2,
+        total180, highFinish,
+        coAttP1, coAttP2,
+        checkoutsP1, checkoutsP2
+      );
 
     }else{
 
       if(ns > 1) s1 = ns;
 
-      await update(s1, s2, "p2", l1, l2, dartsP1, dartsP2, total180, highFinish, checkoutAttempts);
+      await update(
+        s1, s2, "p2", l1, l2,
+        dartsP1, dartsP2,
+        total180, highFinish,
+        coAttP1, coAttP2,
+        checkoutsP1, checkoutsP2
+      );
     }
+  }
 
-  }else{
+  // ==========================
+  // ✅ PLAYER 2 TURN
+  else{
 
-    dartsP2 += 3; // ✅ NUR Spieler 2!
+    dartsP2 += 3;
 
     let ns = s2 - total;
 
     if(ns === 0 && isDouble(last)){
 
+      checkoutsP2++;
       highFinish = Math.max(highFinish, total);
       l2++;
 
@@ -366,17 +391,32 @@ if(currentScore <= 170){
           l2,
           total180,
           highFinish,
-          checkoutAttempts
+          coAttP1,
+          coAttP2,
+          checkoutsP1,
+          checkoutsP2
         );
       }
 
-      await update(501, 501, "p1", l1, l2, dartsP1, dartsP2, total180, highFinish, checkoutAttempts);
+      await update(
+        501, 501, "p1", l1, l2,
+        dartsP1, dartsP2,
+        total180, highFinish,
+        coAttP1, coAttP2,
+        checkoutsP1, checkoutsP2
+      );
 
     }else{
 
       if(ns > 1) s2 = ns;
 
-      await update(s1, s2, "p1", l1, l2, dartsP1, dartsP2, total180, highFinish, checkoutAttempts);
+      await update(
+        s1, s2, "p1", l1, l2,
+        dartsP1, dartsP2,
+        total180, highFinish,
+        coAttP1, coAttP2,
+        checkoutsP1, checkoutsP2
+      );
     }
   }
 
@@ -385,10 +425,24 @@ if(currentScore <= 170){
 }
 
 
-// ==========================
-async function update(s1,s2,turn,l1,l2,darts,total180,highFinish,checkoutAttempts){
+// ========================== Update
+async function update(
+  s1,
+  s2,
+  turn,
+  l1,
+  l2,
+  dartsP1,
+  dartsP2,
+  total180,
+  highFinish,
+  coAttP1,
+  coAttP2,
+  checkoutsP1,
+  checkoutsP2
+){
 
-  const token=await getToken();
+  const token = await getToken();
 
   await fetch(
     `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${currentMatch.id}/fields`,
@@ -398,23 +452,25 @@ async function update(s1,s2,turn,l1,l2,darts,total180,highFinish,checkoutAttempt
         Authorization:`Bearer ${token}`,
         "Content-Type":"application/json"
       },
-      body:JSON.stringify({
-        Score1:s1,
-        Score2:s2,
-        Turn:turn,
-        Legs1:l1,
+      body: JSON.stringify({
+        Score1: s1,
+        Score2: s2,
+        Turn: turn,
+        Legs1: l1,
+        Legs2: l2,
+
         DartsP1: dartsP1 || 0,
         DartsP2: dartsP2 || 0,
         DartsThrown: (dartsP1 || 0) + (dartsP2 || 0),
+
+    CheckoutAttemptsP1: coAttP1 || 0,
+CheckoutAttemptsP2: coAttP2 || 0,
 CheckoutsP1: checkoutsP1 || 0,
 CheckoutsP2: checkoutsP2 || 0,
-CheckoutAttemptsP1: coAttP1 || 0,
-CheckoutAttemptsP2: coAttP2 || 0,
-        
-  total180: total180 || 0,
-  HighFinish: highFinish || 0,
-  CheckoutAttempts: checkoutAttempts || 0
 
+
+        total180: total180 || 0,
+        HighFinish: highFinish || 0
       })
     }
   );
@@ -688,7 +744,17 @@ async function resetMatch(){
 
 
 // ==========================
-async function finishMatch(winner,l1,l2,total180,highFinish,checkoutAttempts){
+async function finishMatch(
+  winner,
+  l1,
+  l2,
+  total180,
+  highFinish,
+  coAttP1,
+  coAttP2,
+  checkoutsP1,
+  checkoutsP2
+){
 
   const token=await getToken();
 
@@ -709,13 +775,13 @@ async function finishMatch(winner,l1,l2,total180,highFinish,checkoutAttempts){
        
 DartsP1: currentMatch.fields.DartsP1 || 0,
 DartsP2: currentMatch.fields.DartsP2 || 0,
-CheckoutsP1: currentMatch.fields.CheckoutsP1 || 0,
-CheckoutsP2: currentMatch.fields.CheckoutsP2 || 0,
-CheckoutAttemptsP1: currentMatch.fields.CheckoutAttemptsP1 || 0,
-CheckoutAttemptsP2: currentMatch.fields.CheckoutAttemptsP2 || 0,
+CheckoutAttemptsP1: coAttP1 || 0,
+CheckoutAttemptsP2: coAttP2 || 0,
+CheckoutsP1: checkoutsP1 || 0,
+CheckoutsP2: checkoutsP2 || 0,
+
   total180: total180 || 0,
-  HighFinish: highFinish || 0,
-  CheckoutAttempts: checkoutAttempts || 0
+  HighFinish: highFinish || 0
 })
     }
   );
