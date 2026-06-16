@@ -401,8 +401,6 @@ async function autoProgress(){
 
  const activeTournament = localStorage.getItem("TournamentID");
 
-const activeTournament = localStorage.getItem("TournamentID");
-
 const all = await getList("Matches");
 
 const groupMatches = all.filter(m =>
@@ -755,6 +753,7 @@ function fillWithByes(players){
 async function createFullKO(players){
 
   const token = await getToken();
+  const activeTournament = localStorage.getItem("TournamentID");
 
   const map = {
     64:"r64",
@@ -803,7 +802,8 @@ async function createFullKO(players){
               Group:"",
               Winner: winner,
               Round:firstRound,
-              Mode:"tournament"
+              Mode:"tournament",
+              TournamentID: activeTournament
             }
           })
         }
@@ -837,7 +837,8 @@ async function createFullKO(players){
             Group:"",
             Winner:"",
             Round:firstRound,
-            Mode:"tournament"
+            Mode:"tournament",
+            TournamentID: activeTournament
           }
         })
       }
@@ -878,7 +879,8 @@ async function createFullKO(players){
               Group:"",
               Winner:"",
               Round:roundName,
-              Mode:"tournament"
+              Mode:"tournament",
+              TournamentID: activeTournament
             }
           })
         }
@@ -914,7 +916,8 @@ async function createFullKO(players){
           Group:"",
           Winner:"",
           Round:"third",
-          Mode:"tournament"
+          Mode:"tournament",
+          TournamentID: activeTournament
         }
       })
     }
