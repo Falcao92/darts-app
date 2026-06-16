@@ -605,6 +605,38 @@ function seedPlayers(players){
   return result;
 }
 
+
+
+
+//Archivier Funktion
+
+async function archivTournament(){
+
+  const token = await getToken();
+  const matches = await getList("Matches");
+
+  for(const m of matches){
+
+    await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/Matches/items/${m.id}/fields`,
+      {
+        method:"PATCH",
+        headers:{
+          Authorization:`Bearer ${token}`,
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          Status:"archived"
+        })
+      }
+    );
+  }
+
+  alert("✅ Turnier archiviert");
+}
+
+
+
 // ==========================
 // ✅ MATCH ERSTELLEN
 // ==========================
