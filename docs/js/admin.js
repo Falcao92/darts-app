@@ -575,10 +575,15 @@ async function endAllTrainingMatches(){
 async function endTournament(){
 
   const token = await getToken();
-const activeTournament = localStorage.getItem("tournamentId");
+  const activeTournament = localStorage.getItem("tournamentID");
 
-const matches = (await getList("Matches"))
-  .filter(m => m.fields.TournamentID == activeTournament);
+  if(!activeTournament){
+    alert("Kein aktives Turnier");
+    return;
+  }
+
+  const matches = (await getList("Matches"))
+    .filter(m => String(m.fields.TournamentID) === String(activeTournament));
 
   for(const m of matches){
     await fetch(
@@ -590,13 +595,16 @@ const matches = (await getList("Matches"))
           "Content-Type":"application/json"
         },
         body:JSON.stringify({
-          Status:"archived",
+          Status:"archived",   // ✅ WICHTIG
           BoardId:null
         })
       }
     );
   }
+
+  // ✅ GANZ WICHTIG!!!
   localStorage.removeItem("tournamentID");
+
   alert("✅ Turnier beendet");
 }
 
