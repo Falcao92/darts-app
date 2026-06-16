@@ -59,16 +59,16 @@ function calculateAdvancedStats(player){
       wins++;
     }
 
-    // ✅ Punkte
+    // ✅ Punkte (über Legs)
     const legs = isP1 ? (f.Legs1 || 0) : (f.Legs2 || 0);
     const points = legs * 501;
 
-    // ✅ Darts (mit Fallback!)
+    // ✅ Darts (neu + fallback alt)
     let playerDarts = isP1
       ? (f.DartsP1 || 0)
       : (f.DartsP2 || 0);
 
-    if(playerDarts === 0){
+    if(!playerDarts || playerDarts === 0){
       const totalDarts = f.DartsThrown || 0;
       playerDarts = totalDarts / 2;
     }
@@ -76,33 +76,42 @@ function calculateAdvancedStats(player){
     darts += playerDarts;
     scored += points;
 
-    // ✅ 180
+    // ✅ 180 (einfach behalten – später optional trennen)
     total180 += f.total180 || 0;
 
     // ✅ Best Finish
     bestFinish = Math.max(bestFinish, f.HighFinish || 0);
 
-    // ✅ Checkout (realistisch approximiert)
-const attempts = f.CheckoutAttempts || 0;
+    // ==========================
+    // ✅ CHECKOUT (FINAL FIX)
+    // ==========================
 
-// ✅ einfache Logik:
-// Gewinner → alle Attempts zählen
-// Verlierer → nur Versuche wenn er theoretisch dran war
+    // ✅ neue Felder benutzen (falls vorhanden)
+    const attempts = isP1
+      ? (f.CheckoutAttemptsP1 ?? null)
+      : (f.CheckoutAttemptsP2 ?? null);
 
-if(isP1 && f.Player1 === f.Winner){
-  coAttempts += attempts;
-}else if(!isP1 && f.Player2 === f.Winner){
-  coAttempts += attempts;
-}else{
-  // Verlierer → reduzieren
-  coAttempts += attempts * 0.3; // realistischer Anteil
-}
+    const hits = isP1
+      ? (f.CheckoutsP1 ?? null)
+      : (f.CheckoutsP2 ?? null);
 
+    if(attempts !== null && hits !== null){
+      // ✅ PRO MODE (exakte Daten)
+      coAttempts += attempts;
+      coHits += hits;
 
-if(f.Winner === player){
-  coHits += (isP1 ? f.Legs1 : f.Legs2) || 1;
-}
+    }else{
+      // ✅ FALLBACK für alte Matches
 
+      const totalAttempts = f.CheckoutAttempts || 0;
+
+      if(f.Winner === player){
+        coAttempts += totalAttempts;
+        coHits += 1; // ✅ genau EIN Checkout pro Spiel
+      }else{
+        coAttempts += totalAttempts * 0.3; // ✅ reduzierte Versuche
+      }
+    }
 
   });
 
@@ -110,13 +119,21 @@ if(f.Winner === player){
     games,
     wins,
     losses: games - wins,
+
+    // ✅ echte Avg
     avg: darts > 0 ? ((scored / darts) * 3).toFixed(2) : 0,
+
     winrate: games > 0 ? ((wins / games) * 100).toFixed(1) : 0,
     total180,
     bestFinish,
-    coRate: coAttempts > 0 ? ((coHits / coAttempts) * 100).toFixed(1) : 0
+
+    // ✅ stabile Quote
+    coRate: coAttempts > 0
+      ? ((coHits / coAttempts) * 100).toFixed(1)
+      : 0
   };
 }
+``
 // ==========================
 // ✅ PLAYER STATS UI
 function showPlayerStats(player){
