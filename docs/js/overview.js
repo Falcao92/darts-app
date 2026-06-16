@@ -12,16 +12,20 @@ window.addEventListener("DOMContentLoaded", async () => {
 // 🔄 MAIN UPDATE
 // ==========================
 async function update(){
+const all = await getList("Matches");
 
-  const all = await getList("Matches");
+const activeTournament = localStorage.getItem("tournamentId");
 
-  const tournamentMatches = all.filter(m =>
-    m.fields && m.fields.Mode === "tournament"
-  );
+const tournamentMatches = all.filter(m =>
+  m.fields &&
+  m.fields.Mode === "tournament" &&
+  m.fields.TournamentID == activeTournament
+);
 
   const trainingMatches = all.filter(m =>
-    m.fields && m.fields.Mode === "training"
-  );
+  m.fields &&
+  m.fields.Mode === "training"
+);
 
   const hasTournament = tournamentMatches.length > 0;
 
