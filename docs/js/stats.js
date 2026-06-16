@@ -39,13 +39,13 @@ function buildPlayerSelect(){
 // ✅ ADVANCED STATS
 function calculateAdvancedStats(player){
 
-  let games=0,wins=0;
-  let darts=0,scored=0;
-  let total180=0;
-  let bestFinish=0;
-  let coHits=0, coAttempts=0;
+  let games = 0, wins = 0;
+  let darts = 0, scored = 0;
+  let total180 = 0;
+  let bestFinish = 0;
+  let coHits = 0, coAttempts = 0;
 
-  matches.forEach(m=>{
+  matches.forEach(m => {
 
     const f = m.fields;
     if(!f || f.Status !== "finished") return;
@@ -54,33 +54,45 @@ function calculateAdvancedStats(player){
     games++;
 
     const isP1 = f.Player1 === player;
-    const score = isP1 ? f.Score1 : f.Score2;
 
+    // ✅ Gewinner
     if(f.Winner === player){
       wins++;
       coHits++;
     }
 
-    darts += f.DartsThrown || 0;
-    scored += (501 - score);
+    // ✅ KORREKT: Punkte aus Legs
+    const legs = isP1 ? (f.Legs1 || 0) : (f.Legs2 || 0);
+    const points = legs * 501;
 
+    // ✅ KORREKT: Darts anteilig (50/50 Näherung)
+    const totalDarts = f.DartsThrown || 0;
+    const playerDarts = totalDarts / 2;
+
+    darts += playerDarts;
+    scored += points;
+
+    // ✅ einfache Stats
     total180 += f.total180 || 0;
     bestFinish = Math.max(bestFinish, f.HighFinish || 0);
     coAttempts += f.CheckoutAttempts || 0;
+
   });
 
   return {
     games,
     wins,
     losses: games - wins,
-    avg: darts>0?((scored/darts)*3).toFixed(2):0,
-    winrate: games>0?((wins/games)*100).toFixed(1):0,
+
+    // ✅ echte Avg
+    avg: darts > 0 ? ((scored / darts) * 3).toFixed(2) : 0,
+
+    winrate: games > 0 ? ((wins / games) * 100).toFixed(1) : 0,
     total180,
     bestFinish,
-    coRate: coAttempts>0?((coHits/coAttempts)*100).toFixed(1):0
+    coRate: coAttempts > 0 ? ((coHits / coAttempts) * 100).toFixed(1) : 0
   };
 }
-
 // ==========================
 // ✅ PLAYER STATS UI
 function showPlayerStats(player){
