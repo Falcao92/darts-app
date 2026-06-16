@@ -482,7 +482,12 @@ async function createGroups(players){
 async function activateFirstMatches(){
 
   const token = await getToken();
-  const matches = await getList("Matches");
+
+const activeTournament = localStorage.getItem("tournamentId");
+
+const matches = (await getList("Matches"))
+  .filter(m => m.fields.TournamentID == activeTournament);
+
 
   const boardCount = parseInt(localStorage.getItem("boardCount")) || 2;
 
@@ -570,7 +575,10 @@ async function endAllTrainingMatches(){
 async function endTournament(){
 
   const token = await getToken();
-  const matches = await getList("Matches");
+const activeTournament = localStorage.getItem("tournamentId");
+
+const matches = (await getList("Matches"))
+  .filter(m => m.fields.TournamentID == activeTournament);
 
   for(const m of matches){
     await fetch(
