@@ -66,8 +66,11 @@ function calculateAdvancedStats(player){
     const points = legs * 501;
 
     // ✅ KORREKT: Darts anteilig (50/50 Näherung)
-    const totalDarts = f.DartsThrown || 0;
-    const playerDarts = totalDarts / 2;
+
+const playerDarts = isP1
+  ? (f.DartsP1 || 0)
+  : (f.DartsP2 || 0);
+
 
     darts += playerDarts;
     scored += points;
