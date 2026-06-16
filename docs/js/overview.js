@@ -51,8 +51,6 @@ if(m.fields.Status === "archived"){
 
 const hasTournament = tournamentMatches.length > 0;
 
-const hasTournament = tournamentMatches.length > 0;
-
 if(hasTournament){
 
   renderBoards(tournamentMatches);
